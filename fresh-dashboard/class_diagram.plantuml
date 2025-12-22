@@ -1,0 +1,389 @@
+@startuml
+title Financial Dashboard - Enhanced Class Diagram
+
+skinparam class {
+  BackgroundColor<<Interface>> #FFF8E1
+  BackgroundColor<<Entity>> #E8F5E8
+  BackgroundColor<<Service>> #E3F2FD
+  BackgroundColor<<Component>> #F3E5F5
+  ArrowColor #333333
+  BorderColor #333333
+}
+
+' ========== INTERFACES ==========
+interface "IProjectService" <<Interface>> {
+  +getProjects(filters: ProjectFilters): Promise<Project[]>
+  +getProjectById(id: string): Promise<Project | null>
+  +createProject(project: CreateProjectDto): Promise<Project>
+  +updateProject(id: string, updates: UpdateProjectDto): Promise<Project>
+  +deleteProject(id: string): Promise<void>
+  +getProjectsByDepartment(departmentId: string): Promise<Project[]>
+  +getProjectFinancials(projectId: string): Promise<ProjectFinancials>
+}
+
+interface "IClientService" <<Interface>> {
+  +getClients(filters: ClientFilters): Promise<Client[]>
+  +getClientById(id: string): Promise<Client | null>
+  +createClient(client: CreateClientDto): Promise<Client>
+  +updateClient(id: string, updates: UpdateClientDto): Promise<Client>
+  +deleteClient(id: string): Promise<void>
+  +getClientTransactions(clientId: string): Promise<Transaction[]>
+  +getClientFinancialSummary(clientId: string): Promise<ClientFinancialSummary>
+}
+
+interface "IIncomeService" <<Interface>> {
+  +getIncomes(filters: IncomeFilters): Promise<Income[]>
+  +getIncomeById(id: string): Promise<Income | null>
+  +createIncome(income: CreateIncomeDto): Promise<Income>
+  +updateIncome(id: string, updates: UpdateIncomeDto): Promise<Income>
+  +deleteIncome(id: string): Promise<void>
+  +getIncomeSummary(period: DateRange): Promise<IncomeSummary>
+  +getIncomeByProject(projectId: string): Promise<Income[]>
+  +getIncomeByClient(clientId: string): Promise<Income[]>
+}
+
+interface "IExpenseService" <<Interface>> {
+  +getExpenses(filters: ExpenseFilters): Promise<Expense[]>
+  +getExpenseById(id: string): Promise<Expense | null>
+  +createExpense(expense: CreateExpenseDto): Promise<Expense>
+  +updateExpense(id: string, updates: UpdateExpenseDto): Promise<Expense>
+  +deleteExpense(id: string): Promise<void>
+  +getExpensesByProject(projectId: string): Promise<Expense[]>
+  +getExpensesByDepartment(departmentId: string): Promise<Expense[]>
+}
+
+' ========== ENTITY CLASSES ==========
+class "Project" <<Entity>> {
+  -id: string
+  -name: string
+  -code: string
+  -description: string
+  -departmentId: string
+  -budget: number
+  -spent: number
+  -startDate: Date
+  -endDate: Date | null
+  -status: ProjectStatus
+  -managerId: string
+  -teamSize: number
+  -createdAt: Date
+  -updatedAt: Date
+  +calculateRemainingBudget(): number
+  +calculateUtilization(): number
+  +updateStatus(newStatus: ProjectStatus): void
+}
+
+class "Client" <<Entity>> {
+  -id: string
+  -name: string
+  -email: string | null
+  -phone: string | null
+  -address: string | null
+  -companyName: string | null
+  -taxId: string | null
+  -paymentTerms: string | null
+  -notes: string | null
+  -status: ClientStatus
+  -createdAt: Date
+  -updatedAt: Date
+  +getFullContactInfo(): string
+  +isActive(): boolean
+}
+
+class "Income" <<Entity>> {
+  -id: string
+  -invoiceNumber: string | null
+  -clientId: string | null
+  -projectId: string | null
+  -departmentId: string | null
+  -amount: number
+  -description: string
+  -category: IncomeCategory
+  -date: Date
+  -dueDate: Date | null
+  -status: PaymentStatus
+  -paymentMethod: string | null
+  -paymentDate: Date | null
+  -receiptUrl: string | null
+  -createdBy: string
+  -createdAt: Date
+  -updatedAt: Date
+  +calculateNetAmount(): number
+  +isOverdue(): boolean
+  +markAsPaid(paymentMethod: string, paymentDate: Date): void
+}
+
+class "Expense" <<Entity>> {
+  -id: string
+  -userId: string
+  -departmentId: string
+  -projectId: string | null
+  -amount: number
+  -description: string
+  -category: ExpenseCategory
+  -date: Date
+  -status: ExpenseStatus
+  -receiptUrl: string | null
+  -createdAt: Date
+  -updatedAt: Date
+  +approve(): void
+  +reject(reason: string): void
+  +isApproved(): boolean
+}
+
+class "Department" <<Entity>> {
+  -id: string
+  -name: string
+  -budget: number
+  -spent: number
+  -manager: string | null
+  -projectCount: number
+  -createdAt: Date
+  -updatedAt: Date
+  +calculateRemainingBudget(): number
+  +calculateUtilization(): number
+  +incrementProjectCount(): void
+  +decrementProjectCount(): void
+}
+
+' ========== DTO CLASSES ==========
+class "CreateProjectDto" {
+  +name: string
+  +code: string
+  +description: string
+  +departmentId: string
+  +budget: number
+  +startDate: Date
+  +endDate: Date | null
+  +managerId: string
+  +teamSize: number
+}
+
+class "CreateClientDto" {
+  +name: string
+  +email: string | null
+  +phone: string | null
+  +address: string | null
+  +companyName: string | null
+  +taxId: string | null
+  +paymentTerms: string | null
+  +notes: string | null
+}
+
+class "CreateIncomeDto" {
+  +invoiceNumber: string | null
+  +clientId: string | null
+  +projectId: string | null
+  +departmentId: string | null
+  +amount: number
+  +description: string
+  +category: IncomeCategory
+  +date: Date
+  +dueDate: Date | null
+  +paymentMethod: string | null
+}
+
+class "CreateExpenseDto" {
+  +departmentId: string
+  +projectId: string | null
+  +amount: number
+  +description: string
+  +category: ExpenseCategory
+  +date: Date
+  +receiptUrl: string | null
+}
+
+' ========== FILTER CLASSES ==========
+class "ProjectFilters" {
+  +departmentId: string | null
+  +status: ProjectStatus | null
+  +managerId: string | null
+  +startDateFrom: Date | null
+  +startDateTo: Date | null
+}
+
+class "ClientFilters" {
+  +status: ClientStatus | null
+  +search: string | null
+  +hasOutstandingPayments: boolean | null
+}
+
+class "IncomeFilters" {
+  +projectId: string | null
+  +clientId: string | null
+  +departmentId: string | null
+  +status: PaymentStatus | null
+  +dateFrom: Date | null
+  +dateTo: Date | null
+  +category: IncomeCategory | null
+}
+
+class "ExpenseFilters" {
+  +departmentId: string | null
+  +projectId: string | null
+  +status: ExpenseStatus | null
+  +category: ExpenseCategory | null
+  +dateFrom: Date | null
+  +dateTo: Date | null
+}
+
+' ========== ENUMERATIONS ==========
+enum "ProjectStatus" {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum "ClientStatus" {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+enum "PaymentStatus" {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIALLY_PAID
+}
+
+enum "ExpenseStatus" {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum "IncomeCategory" {
+  SERVICE_FEE
+  PRODUCT_SALES
+  SUBSCRIPTION
+  CONSULTING
+  LICENSING
+  OTHER
+}
+
+enum "ExpenseCategory" {
+  SALARIES
+  OFFICE_SUPPLIES
+  TRAVEL
+  MARKETING
+  SOFTWARE
+  HARDWARE
+  RENT
+  UTILITIES
+  OTHER
+}
+
+' ========== RELATIONSHIPS ==========
+Department "1" --o{ "*" Project : contains
+Project "1" --o{ "*" Income : generates
+Project "1" --o{ "*" Expense : consumes
+Client "1" --o{ "*" Income : pays
+Department "1" --o{ "*" Expense : has
+Department "1" --o{ "*" Income : receives
+
+' ========== SERVICE IMPLEMENTATIONS ==========
+class "ProjectService" <<Service>> {
+  -supabase: SupabaseClient
+  +getProjects(filters: ProjectFilters): Promise<Project[]>
+  +getProjectById(id: string): Promise<Project | null>
+  +createProject(project: CreateProjectDto): Promise<Project>
+  +updateProject(id: string, updates: UpdateProjectDto): Promise<Project>
+  +deleteProject(id: string): Promise<void>
+  +getProjectsByDepartment(departmentId: string): Promise<Project[]>
+  +getProjectFinancials(projectId: string): Promise<ProjectFinancials>
+}
+
+class "ClientService" <<Service>> {
+  -supabase: SupabaseClient
+  +getClients(filters: ClientFilters): Promise<Client[]>
+  +getClientById(id: string): Promise<Client | null>
+  +createClient(client: CreateClientDto): Promise<Client>
+  +updateClient(id: string, updates: UpdateClientDto): Promise<Client>
+  +deleteClient(id: string): Promise<void>
+  +getClientTransactions(clientId: string): Promise<Transaction[]>
+  +getClientFinancialSummary(clientId: string): Promise<ClientFinancialSummary>
+}
+
+class "IncomeService" <<Service>> {
+  -supabase: SupabaseClient
+  +getIncomes(filters: IncomeFilters): Promise<Income[]>
+  +getIncomeById(id: string): Promise<Income | null>
+  +createIncome(income: CreateIncomeDto): Promise<Income>
+  +updateIncome(id: string, updates: UpdateIncomeDto): Promise<Income>
+  +deleteIncome(id: string): Promise<void>
+  +getIncomeSummary(period: DateRange): Promise<IncomeSummary>
+  +getIncomeByProject(projectId: string): Promise<Income[]>
+  +getIncomeByClient(clientId: string): Promise<Income[]>
+}
+
+' ========== INTERFACE IMPLEMENTATIONS ==========
+IProjectService ..|> ProjectService
+IClientService ..|> ClientService
+IIncomeService ..|> IncomeService
+IExpenseService ..|> ExpenseService
+
+' ========== COMPONENT CLASSES ==========
+class "ProjectForm" <<Component>> {
+  -project: CreateProjectDto | null
+  -departments: Department[]
+  -loading: boolean
+  +handleSubmit(): Promise<void>
+  +validateForm(): boolean
+  +resetForm(): void
+}
+
+class "ClientForm" <<Component>> {
+  -client: CreateClientDto | null
+  -loading: boolean
+  +handleSubmit(): Promise<void>
+  +validateEmail(): boolean
+  +validatePhone(): boolean
+  +resetForm(): void
+}
+
+class "IncomeForm" <<Component>> {
+  -income: CreateIncomeDto | null
+  -clients: Client[]
+  -projects: Project[]
+  -departments: Department[]
+  -loading: boolean
+  +handleSubmit(): Promise<void>
+  +calculateTotal(): number
+  +validateDates(): boolean
+  +resetForm(): void
+}
+
+class "ExpenseForm" <<Component>> {
+  -expense: CreateExpenseDto | null
+  -departments: Department[]
+  -projects: Project[]
+  -loading: boolean
+  +handleSubmit(): Promise<void>
+  +validateAmount(): boolean
+  +getProjectsByDepartment(departmentId: string): Project[]
+  +resetForm(): void
+}
+
+note top of Project
+  Enhanced with project management
+  features including budget tracking,
+  team assignments, and status
+  management.
+end note
+
+note top of Income
+  Enhanced with project/client
+  classification, payment tracking,
+  and department association.
+end note
+
+note top of Expense
+  Enhanced with project classification
+  and improved validation for
+  department/project relationships.
+end note
+
+@enduml

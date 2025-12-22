@@ -1,0 +1,38 @@
+[
+  {
+    "id": "inv_001",
+    "invoice_number": "INV-2024-001",
+    "client": "TechCorp Inc.",
+    "amount": 25000,
+    "vat_amount": 3750,
+    "vat_rate": 0.15,
+    "vat_exempt": false,
+    "date": "2025-12-07T20:38:56.899Z",
+    "due_date": "2026-01-06T20:38:56.899Z",
+    "status": "paid"
+  },
+  {
+    "id": "inv_002",
+    "invoice_number": "INV-2024-002",
+    "client": "Global Retail",
+    "amount": 15000,
+    "vat_amount": 2250,
+    "vat_rate": 0.15,
+    "vat_exempt": false,
+    "date": "2025-12-10T20:38:56.899Z",
+    "due_date": "2026-01-09T20:38:56.899Z",
+    "status": "paid"
+  },
+  {
+    "id": "inv_003",
+    "invoice_number": "INV-2024-003",
+    "client": "StartupXYZ",
+    "amount": 8000,
+    "vat_amount": 0,
+    "vat_rate": 0.15,
+    "vat_exempt": true,
+    "date": "2025-12-13T20:38:56.899Z",
+    "due_date": "2026-01-12T20:38:56.899Z",
+    "status": "pending"
+  }
+]

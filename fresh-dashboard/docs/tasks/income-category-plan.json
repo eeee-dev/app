@@ -1,0 +1,101 @@
+{
+  "phase_1_database": {
+    "description": "Create database tables for income categories",
+    "tables": [
+      {
+        "name": "app_40611b53f9_income_categories",
+        "purpose": "Store predefined income categories",
+        "columns": [
+          "id UUID PRIMARY KEY",
+          "name TEXT NOT NULL",
+          "description TEXT",
+          "default_division TEXT",
+          "created_at TIMESTAMP",
+          "updated_at TIMESTAMP"
+        ]
+      },
+      {
+        "name": "app_40611b53f9_income_breakdowns",
+        "purpose": "Store category breakdowns for each income entry",
+        "columns": [
+          "id UUID PRIMARY KEY",
+          "income_id UUID REFERENCES app_40611b53f9_enhanced_income(id)",
+          "category_id UUID REFERENCES app_40611b53f9_income_categories(id)",
+          "amount DECIMAL NOT NULL",
+          "percentage DECIMAL",
+          "notes TEXT",
+          "created_at TIMESTAMP",
+          "updated_at TIMESTAMP"
+        ]
+      }
+    ]
+  },
+  "phase_2_frontend": {
+    "description": "Create UI components for category breakdown",
+    "components": [
+      "IncomeCategoryManager.tsx - Manage predefined categories",
+      "IncomeBreakdownForm.tsx - Add/edit income with category breakdown",
+      "CategoryBreakdownChart.tsx - Visualize category distribution",
+      "CategoryAllocationTable.tsx - Tabular view of breakdowns"
+    ]
+  },
+  "phase_3_integration": {
+    "description": "Integrate with existing income system",
+    "tasks": [
+      "Update supabase.ts with new API methods",
+      "Modify Income.tsx to support category breakdown",
+      "Add category breakdown to dashboard stats",
+      "Create category-based reports"
+    ]
+  },
+  "default_categories": [
+    {
+      "name": "Creative Direction",
+      "division": "\u00eb \u2022 zimaz\u00eb"
+    },
+    {
+      "name": "Logo Design",
+      "division": "\u00eb \u2022 zimaz\u00eb"
+    },
+    {
+      "name": "Design Work",
+      "division": "\u00eb \u2022 zimaz\u00eb"
+    },
+    {
+      "name": "Presentation Design",
+      "division": "\u00eb \u2022 zimaz\u00eb"
+    },
+    {
+      "name": "Video Production",
+      "division": "\u00eb \u2022 b\u014ducan"
+    },
+    {
+      "name": "Photography",
+      "division": "\u00eb \u2022 b\u014ducan"
+    },
+    {
+      "name": "Content Capture",
+      "division": "\u00eb \u2022 b\u014ducan"
+    },
+    {
+      "name": "Music & Audio",
+      "division": "\u00eb \u2022 musiqu\u00eb"
+    },
+    {
+      "name": "Talent Management",
+      "division": "\u00eb \u2022 tal\u00ebnt"
+    },
+    {
+      "name": "Event Management",
+      "division": "\u00eb \u2022 m\u014dris"
+    },
+    {
+      "name": "Sustenance & Logistics",
+      "division": "\u00eb \u2022 admin"
+    },
+    {
+      "name": "Other Services",
+      "division": "\u00eb \u2022 admin"
+    }
+  ]
+}

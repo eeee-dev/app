@@ -1,0 +1,137 @@
+@startuml
+!define RECTANGLE class
+skinparam class {
+  BackgroundColor<<Frontend>> #E3F2FD
+  BackgroundColor<<Backend>> #F3E5F5
+  BackgroundColor<<Database>> #E8F5E8
+  BackgroundColor<<External>> #FFF3E0
+  ArrowColor #333333
+  BorderColor #333333
+}
+
+title Financial Dashboard Enhanced Architecture
+
+package "Frontend Layer (React + TypeScript)" <<Frontend>> {
+  [Dashboard Page] as Dashboard
+  [Expenses Page] as Expenses
+  [Income Page] as Income
+  [Projects Page] as Projects
+  [Clients Page] as Clients
+  [Invoices Page] as Invoices
+  [Reports Page] as Reports
+  [Settings Page] as Settings
+  
+  package "UI Components" {
+    [Layout Components] as Layout
+    [Form Components] as Forms
+    [Data Grid Components] as DataGrid
+    [Chart Components] as Charts
+  }
+  
+  package "State Management" {
+    [React Context] as Context
+    [Custom Hooks] as Hooks
+  }
+}
+
+package "Backend Layer (Supabase)" <<Backend>> {
+  [Authentication Service] as Auth
+  [Database API] as DB
+  [Storage Service] as Storage
+  [Edge Functions] as EdgeFunctions
+  
+  package "API Services" {
+    [Project Service] as ProjectAPI
+    [Client Service] as ClientAPI
+    [Income Service] as IncomeAPI
+    [Expense Service] as ExpenseAPI
+    [Report Service] as ReportAPI
+  }
+}
+
+package "Database Layer (PostgreSQL)" <<Database>> {
+  [Users Table] as Users
+  [Departments Table] as Departments
+  [Projects Table] as ProjectsDB
+  [Clients Table] as ClientsDB
+  [Income Table] as IncomeDB
+  [Expenses Table] as ExpensesDB
+  [Invoices Table] as InvoicesDB
+  [Bank Statements Table] as BankStatements
+  [Transactions Table] as Transactions
+  [Settings Table] as SettingsDB
+}
+
+package "External Services" <<External>> {
+  [File Storage (Supabase)] as FileStorage
+  [Email Service] as Email
+  [OCR Service] as OCR
+  [Bank APIs] as BankAPIs
+}
+
+' Frontend to Backend connections
+Dashboard --> Auth : Authentication
+Expenses --> ExpenseAPI : CRUD Operations
+Income --> IncomeAPI : CRUD Operations
+Projects --> ProjectAPI : CRUD Operations
+Clients --> ClientAPI : CRUD Operations
+Invoices --> DB : Invoice Management
+Reports --> ReportAPI : Report Generation
+Settings --> DB : User Preferences
+
+' Backend to Database connections
+Auth --> Users : User Management
+ProjectAPI --> ProjectsDB : Project Data
+ClientAPI --> ClientsDB : Client Data
+IncomeAPI --> IncomeDB : Income Data
+ExpenseAPI --> ExpensesDB : Expense Data
+ReportAPI --> ProjectsDB : Project Reports
+ReportAPI --> IncomeDB : Income Reports
+ReportAPI --> ExpensesDB : Expense Reports
+
+' Database relationships
+Departments "1" --o{ "0..*" ProjectsDB : has_many
+ProjectsDB "1" --o{ "0..*" IncomeDB : generates
+ProjectsDB "1" --o{ "0..*" ExpensesDB : consumes
+ClientsDB "1" --o{ "0..*" IncomeDB : pays
+ClientsDB "1" --o{ "0..*" InvoicesDB : receives
+Users "1" --o{ "0..*" Departments : manages
+Users "1" --o{ "0..*" ProjectsDB : assigned_to
+
+' External service connections
+Storage --> FileStorage : File Upload/Download
+DB --> OCR : Document Processing
+EdgeFunctions --> Email : Notifications
+EdgeFunctions --> BankAPIs : Transaction Sync
+
+' Component dependencies
+Layout --> Forms : Form Rendering
+Forms --> Hooks : State Management
+DataGrid --> Context : Data Fetching
+Charts --> ReportAPI : Data Visualization
+
+note right of ProjectsDB
+  Enhanced with:
+  - department_id (FK to Departments)
+  - budget allocation
+  - team assignments
+  - project phases
+end note
+
+note right of IncomeDB
+  Enhanced with:
+  - project_id (FK to Projects)
+  - client_id (FK to Clients)
+  - department_id (FK to Departments)
+  - payment tracking
+end note
+
+note right of ExpensesDB
+  Enhanced with:
+  - project_id (FK to Projects)
+  - department_id (FK to Departments)
+  - expense categories
+  - approval workflow
+end note
+
+@enduml

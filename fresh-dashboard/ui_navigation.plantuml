@@ -1,0 +1,179 @@
+@startuml
+title Financial Dashboard - UI Navigation Flow
+
+skinparam state {
+  BackgroundColor<<Home>> #E3F2FD
+  BackgroundColor<<Primary>> #FFF3E0
+  BackgroundColor<<Secondary>> #F3E5F5
+  BackgroundColor<<Tertiary>> #E8F5E8
+  BackgroundColor<<Settings>> #FFEBEE
+  BorderColor #333333
+  FontColor #333333
+}
+
+state "Home / Dashboard" as Home <<Home>> {
+  state "Financial Overview" as Overview
+  state "Quick Stats" as QuickStats
+  state "Recent Activity" as RecentActivity
+  state "Budget Alerts" as BudgetAlerts
+  
+  [*] --> Overview
+  Overview --> QuickStats
+  Overview --> RecentActivity
+  Overview --> BudgetAlerts
+}
+
+state "Expenses Management" as Expenses <<Primary>> {
+  state "Expense List" as ExpenseList
+  state "Add Expense" as AddExpense
+  state "Expense Details" as ExpenseDetails
+  state "Expense Approval" as ExpenseApproval
+  
+  [*] --> ExpenseList
+  ExpenseList --> AddExpense : Add New
+  ExpenseList --> ExpenseDetails : View Details
+  ExpenseDetails --> ExpenseApproval : Approve/Reject
+  ExpenseApproval --> ExpenseList : Back to List
+  AddExpense --> ExpenseList : Save/Cancel
+}
+
+state "Income Tracking" as Income <<Primary>> {
+  state "Income List" as IncomeList
+  state "Add Income" as AddIncome
+  state "Income Details" as IncomeDetails
+  state "Payment Tracking" as PaymentTracking
+  
+  [*] --> IncomeList
+  IncomeList --> AddIncome : Add New
+  IncomeList --> IncomeDetails : View Details
+  IncomeDetails --> PaymentTracking : Track Payment
+  PaymentTracking --> IncomeList : Back to List
+  AddIncome --> IncomeList : Save/Cancel
+}
+
+state "Project Management" as Projects <<Secondary>> {
+  state "Project List" as ProjectList
+  state "Add Project" as AddProject
+  state "Project Details" as ProjectDetails
+  state "Project Financials" as ProjectFinancials
+  state "Team Management" as TeamManagement
+  
+  [*] --> ProjectList
+  ProjectList --> AddProject : Add New
+  ProjectList --> ProjectDetails : View Details
+  ProjectDetails --> ProjectFinancials : View Financials
+  ProjectDetails --> TeamManagement : Manage Team
+  ProjectFinancials --> ProjectDetails : Back
+  TeamManagement --> ProjectDetails : Back
+  AddProject --> ProjectList : Save/Cancel
+}
+
+state "Client Management" as Clients <<Secondary>> {
+  state "Client Directory" as ClientDirectory
+  state "Add Client" as AddClient
+  state "Client Profile" as ClientProfile
+  state "Client Transactions" as ClientTransactions
+  state "Client Documents" as ClientDocuments
+  
+  [*] --> ClientDirectory
+  ClientDirectory --> AddClient : Add New
+  ClientDirectory --> ClientProfile : View Profile
+  ClientProfile --> ClientTransactions : View Transactions
+  ClientProfile --> ClientDocuments : View Documents
+  ClientTransactions --> ClientProfile : Back
+  ClientDocuments --> ClientProfile : Back
+  AddClient --> ClientDirectory : Save/Cancel
+}
+
+state "Reports & Analytics" as Reports <<Tertiary>> {
+  state "Report Dashboard" as ReportDashboard
+  state "Financial Reports" as FinancialReports
+  state "Project Reports" as ProjectReports
+  state "Client Reports" as ClientReports
+  state "Custom Reports" as CustomReports
+  
+  [*] --> ReportDashboard
+  ReportDashboard --> FinancialReports : Generate
+  ReportDashboard --> ProjectReports : Generate
+  ReportDashboard --> ClientReports : Generate
+  ReportDashboard --> CustomReports : Create
+  FinancialReports --> ReportDashboard : Back
+  ProjectReports --> ReportDashboard : Back
+  ClientReports --> ReportDashboard : Back
+  CustomReports --> ReportDashboard : Back
+}
+
+state "Settings" as Settings <<Settings>> {
+  state "User Settings" as UserSettings
+  state "System Settings" as SystemSettings
+  state "Department Settings" as DepartmentSettings
+  state "Notification Settings" as NotificationSettings
+  
+  [*] --> UserSettings
+  UserSettings --> SystemSettings : Configure System
+  UserSettings --> DepartmentSettings : Manage Departments
+  UserSettings --> NotificationSettings : Set Notifications
+  SystemSettings --> UserSettings : Back
+  DepartmentSettings --> UserSettings : Back
+  NotificationSettings --> UserSettings : Back
+}
+
+' ========== MAIN NAVIGATION PATHS ==========
+Home --> Expenses : Manage Expenses
+Home --> Income : Track Income
+Home --> Projects : Manage Projects
+Home --> Clients : Manage Clients
+Home --> Reports : View Reports
+Home --> Settings : Configure Settings
+
+Expenses --> Home : Back to Dashboard
+Income --> Home : Back to Dashboard
+Projects --> Home : Back to Dashboard
+Clients --> Home : Back to Dashboard
+Reports --> Home : Back to Dashboard
+Settings --> Home : Back to Dashboard
+
+' ========== CROSS-FUNCTIONAL NAVIGATION ==========
+ExpenseList --> Projects : Assign to Project
+AddExpense --> Projects : Select Project
+IncomeList --> Clients : Filter by Client
+AddIncome --> Clients : Select Client
+AddIncome --> Projects : Assign to Project
+ProjectDetails --> Expenses : View Project Expenses
+ProjectDetails --> Income : View Project Income
+ClientProfile --> Income : View Client Payments
+ClientProfile --> Invoices : View Client Invoices
+
+' ========== QUICK ACTIONS FROM HOME ==========
+note right of Home
+  Quick Actions from Dashboard:
+  1. Add New Expense
+  2. Add New Income
+  3. Create Project
+  4. Add Client
+  5. Generate Report
+  6. View Alerts
+end note
+
+Home --> AddExpense : Quick Add Expense
+Home --> AddIncome : Quick Add Income
+Home --> AddProject : Quick Create Project
+Home --> AddClient : Quick Add Client
+Home --> ReportDashboard : Quick Generate Report
+
+' ========== NAVIGATION CONSTRAINTS ==========
+note bottom of Projects
+  Navigation Constraints:
+  - Project selection requires department
+  - Team management requires project access
+  - Financials view requires project permissions
+end note
+
+note bottom of Income
+  Navigation Constraints:
+  - Income entry requires client or project
+  - Payment tracking requires income entry
+  - Reports require date range selection
+end note
+
+@enduml

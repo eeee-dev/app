@@ -1,0 +1,357 @@
+@startuml
+title Financial Dashboard - Enhanced Sequence Diagram
+
+skinparam sequence {
+  ArrowColor #333333
+  ActorBorderColor #333333
+  LifeLineBorderColor #333333
+  ParticipantBorderColor #333333
+  ParticipantBackgroundColor #E3F2FD
+  ActorBackgroundColor #F3E5F5
+}
+
+actor "User" as User
+participant "UI Component" as UI
+participant "API Service" as API
+participant "Supabase Client" as Supabase
+participant "Database" as DB
+participant "Validation Service" as Validation
+
+' ========== CREATE PROJECT SEQUENCE ==========
+group "Create Project with Validation"
+  User -> UI: Fill project form
+  UI -> Validation: validateProjectForm(formData)
+  note right
+    Input: {
+      "name": "New Mobile App",
+      "code": "MOB-2025-001",
+      "departmentId": "dept-123",
+      "budget": 50000,
+      "startDate": "2025-01-15",
+      "managerId": "user-456"
+    }
+  end note
+  
+  Validation --> UI: ValidationResult
+  note right
+    Output: {
+      "valid": true,
+      "errors": [],
+      "warnings": []
+    }
+  end note
+  
+  alt Validation Failed
+    UI -> User: Show validation errors
+  else Validation Passed
+    User -> UI: Submit form
+    UI -> API: createProject(projectData)
+    API -> Supabase: insert into projects
+    note right
+      SQL: INSERT INTO projects (...)
+      VALUES (...)
+    end note
+    
+    Supabase -> DB: Execute query
+    DB --> Supabase: New project record
+    Supabase --> API: Project data
+    
+    API -> Supabase: update department project_count
+    note right
+      SQL: UPDATE departments
+      SET project_count = project_count + 1
+      WHERE id = :departmentId
+    end note
+    
+    Supabase -> DB: Execute update
+    DB --> Supabase: Updated department
+    Supabase --> API: Success
+    
+    API --> UI: Created project
+    note right
+      Output: {
+        "id": "proj-789",
+        "name": "New Mobile App",
+        "code": "MOB-2025-001",
+        "departmentId": "dept-123",
+        "budget": 50000,
+        "spent": 0,
+        "status": "active",
+        "createdAt": "2025-12-16T10:30:00Z"
+      }
+    end note
+    
+    UI -> User: Show success message
+    UI -> UI: Reset form
+  end
+end
+
+' ========== CREATE INCOME WITH CLIENT ASSOCIATION ==========
+group "Create Income Entry"
+  User -> UI: Fill income form
+  UI -> API: getClients(search: "")
+  API -> Supabase: select from clients
+  Supabase -> DB: Execute query
+  DB --> Supabase: Client list
+  Supabase --> API: Clients data
+  API --> UI: Clients list
+  
+  UI -> API: getProjects(departmentId: "dept-123")
+  API -> Supabase: select from projects
+  Supabase -> DB: Execute query
+  DB --> Supabase: Projects list
+  Supabase --> API: Projects data
+  API --> UI: Projects list
+  
+  User -> UI: Select client & project, fill details
+  UI -> Validation: validateIncomeForm(incomeData)
+  note right
+    Input: {
+      "clientId": "client-456",
+      "projectId": "proj-789",
+      "amount": 15000,
+      "description": "Mobile app development",
+      "date": "2025-12-15",
+      "category": "SERVICE_FEE"
+    }
+  end note
+  
+  Validation --> UI: ValidationResult
+  User -> UI: Submit form
+  UI -> API: createIncome(incomeData)
+  
+  API -> Supabase: insert into income
+  note right
+    SQL: INSERT INTO income (...)
+    VALUES (...)
+  end note
+  
+  Supabase -> DB: Execute query
+  DB --> Supabase: New income record
+  Supabase --> API: Income data
+  
+  API -> Supabase: update project spent amount
+  note right
+    SQL: UPDATE projects
+    SET spent = spent + :amount
+    WHERE id = :projectId
+  end note
+  
+  Supabase -> DB: Execute update
+  DB --> Supabase: Updated project
+  Supabase --> API: Success
+  
+  API -> Supabase: update department spent amount
+  note right
+    SQL: UPDATE departments
+    SET spent = spent + :amount
+    WHERE id = :departmentId
+  end note
+  
+  Supabase -> DB: Execute update
+  DB --> Supabase: Updated department
+  Supabase --> API: Success
+  
+  API --> UI: Created income
+  note right
+    Output: {
+      "id": "income-123",
+      "clientId": "client-456",
+      "projectId": "proj-789",
+      "amount": 15000,
+      "status": "pending",
+      "createdAt": "2025-12-16T10:35:00Z"
+    }
+  end note
+  
+  UI -> User: Show success message
+end
+
+' ========== CREATE EXPENSE WITH PROJECT CLASSIFICATION ==========
+group "Create Expense with Project Classification"
+  User -> UI: Navigate to expenses page
+  UI -> API: getDepartments()
+  API -> Supabase: select from departments
+  Supabase -> DB: Execute query
+  DB --> Supabase: Departments list
+  Supabase --> API: Departments data
+  API --> UI: Departments list
+  
+  User -> UI: Select department
+  UI -> API: getProjects(departmentId: selectedDept)
+  API -> Supabase: select from projects
+  Supabase -> DB: Execute query
+  DB --> Supabase: Projects list
+  Supabase --> API: Projects data
+  API --> UI: Projects list
+  
+  User -> UI: Fill expense form with project
+  UI -> Validation: validateExpenseForm(expenseData)
+  note right
+    Input: {
+      "departmentId": "dept-123",
+      "projectId": "proj-789",
+      "amount": 5000,
+      "description": "Software licenses",
+      "category": "SOFTWARE",
+      "date": "2025-12-16"
+    }
+  end note
+  
+  Validation --> UI: ValidationResult
+  User -> UI: Submit form
+  UI -> API: createExpense(expenseData)
+  
+  API -> Supabase: insert into expenses
+  note right
+    SQL: INSERT INTO expenses (...)
+    VALUES (...)
+  end note
+  
+  Supabase -> DB: Execute query
+  DB --> Supabase: New expense record
+  Supabase --> API: Expense data
+  
+  API -> Supabase: update project spent amount
+  note right
+    SQL: UPDATE projects
+    SET spent = spent + :amount
+    WHERE id = :projectId
+  end note
+  
+  Supabase -> DB: Execute update
+  DB --> Supabase: Updated project
+  Supabase --> API: Success
+  
+  API -> Supabase: update department spent amount
+  note right
+    SQL: UPDATE departments
+    SET spent = spent + :amount
+    WHERE id = :departmentId
+  end note
+  
+  Supabase -> DB: Execute update
+  DB --> Supabase: Updated department
+  Supabase --> API: Success
+  
+  API --> UI: Created expense
+  note right
+    Output: {
+      "id": "expense-456",
+      "projectId": "proj-789",
+      "amount": 5000,
+      "status": "pending",
+      "createdAt": "2025-12-16T10:40:00Z"
+    }
+  end note
+  
+  UI -> User: Show success message
+end
+
+' ========== GENERATE FINANCIAL REPORT ==========
+group "Generate Project Financial Report"
+  User -> UI: Select project for report
+  UI -> API: getProjectFinancials(projectId: "proj-789")
+  
+  API -> Supabase: select project details
+  Supabase -> DB: Execute query
+  DB --> Supabase: Project data
+  Supabase --> API: Project details
+  
+  API -> Supabase: select project income
+  note right
+    SQL: SELECT * FROM income
+    WHERE project_id = :projectId
+  end note
+  Supabase -> DB: Execute query
+  DB --> Supabase: Income records
+  Supabase --> API: Income data
+  
+  API -> Supabase: select project expenses
+  note right
+    SQL: SELECT * FROM expenses
+    WHERE project_id = :projectId
+  end note
+  Supabase -> DB: Execute query
+  DB --> Supabase: Expense records
+  Supabase --> API: Expense data
+  
+  API -> API: calculateFinancialSummary(project, income, expenses)
+  note right
+    Calculations:
+    - Total Income: sum(income.amount)
+    - Total Expenses: sum(expenses.amount)
+    - Net Profit: totalIncome - totalExpenses
+    - Budget Utilization: (spent / budget) * 100
+  end note
+  
+  API --> UI: ProjectFinancials
+  note right
+    Output: {
+      "project": {...},
+      "totalIncome": 15000,
+      "totalExpenses": 5000,
+      "netProfit": 10000,
+      "budgetUtilization": 10.0,
+      "incomeByCategory": {...},
+      "expensesByCategory": {...}
+    }
+  end note
+  
+  UI -> UI: Format report data
+  UI -> User: Display financial report
+  User -> UI: Export to PDF/Excel
+  UI -> API: exportReport(financialData, format: "pdf")
+  API -> API: generateReportDocument(financialData, "pdf")
+  API --> UI: Report file
+  UI -> User: Download report
+end
+
+' ========== CLIENT MANAGEMENT FLOW ==========
+group "Client Management Operations"
+  User -> UI: Navigate to clients page
+  UI -> API: getClients(filters: {status: "active"})
+  API -> Supabase: select from clients
+  Supabase -> DB: Execute query
+  DB --> Supabase: Active clients
+  Supabase --> API: Clients data
+  API --> UI: Clients list
+  
+  User -> UI: Click "Add New Client"
+  UI -> UI: Show client form
+  User -> UI: Fill client details
+  UI -> Validation: validateClientForm(clientData)
+  note right
+    Input: {
+      "name": "Acme Corp",
+      "email": "contact@acme.com",
+      "phone": "+1234567890",
+      "companyName": "Acme Corporation"
+    }
+  end note
+  
+  Validation --> UI: ValidationResult
+  User -> UI: Submit form
+  UI -> API: createClient(clientData)
+  
+  API -> Supabase: insert into clients
+  Supabase -> DB: Execute query
+  DB --> Supabase: New client record
+  Supabase --> API: Client data
+  
+  API --> UI: Created client
+  UI -> User: Show success message
+  
+  User -> UI: View client details
+  UI -> API: getClientFinancialSummary(clientId: "client-456")
+  API -> Supabase: select client transactions
+  Supabase -> DB: Execute query
+  DB --> Supabase: Transaction history
+  Supabase --> API: Transactions data
+  
+  API -> API: calculateClientSummary(transactions)
+  API --> UI: ClientFinancialSummary
+  UI -> User: Display client dashboard
+end
+
+@enduml

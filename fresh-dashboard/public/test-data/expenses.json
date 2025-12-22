@@ -1,0 +1,50 @@
+[
+  {
+    "id": "exp_001",
+    "department_id": "dept_001",
+    "description": "Google Ads Campaign",
+    "amount": 2500,
+    "vat_amount": 375,
+    "vat_rate": 0.15,
+    "vat_exempt": false,
+    "category": "Advertising",
+    "date": "2025-12-12T20:38:56.899Z",
+    "status": "approved"
+  },
+  {
+    "id": "exp_002",
+    "department_id": "dept_002",
+    "description": "Sales Conference Tickets",
+    "amount": 1200,
+    "vat_amount": 180,
+    "vat_rate": 0.15,
+    "vat_exempt": false,
+    "category": "Training",
+    "date": "2025-12-14T20:38:56.899Z",
+    "status": "pending"
+  },
+  {
+    "id": "exp_003",
+    "department_id": "dept_003",
+    "description": "Development Software License",
+    "amount": 4500,
+    "vat_amount": 0,
+    "vat_rate": 0.15,
+    "vat_exempt": true,
+    "category": "Software",
+    "date": "2025-12-15T20:38:56.899Z",
+    "status": "approved"
+  },
+  {
+    "id": "exp_004",
+    "department_id": "dept_004",
+    "description": "Office Supplies",
+    "amount": 850,
+    "vat_amount": 127.5,
+    "vat_rate": 0.15,
+    "vat_exempt": false,
+    "category": "Supplies",
+    "date": "2025-12-16T20:38:56.899Z",
+    "status": "approved"
+  }
+]

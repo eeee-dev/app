@@ -1,0 +1,77 @@
+{
+  "project_name": "MT Connect",
+  "client_name": "Mauritius Telecom",
+  "invoice_number": "MT-CONNECT-001",
+  "invoice_date": "2024-01-15",
+  "amount": 1840575,
+  "status": "pending",
+  "category_breakdown": [
+    {
+      "categoryId": "creative-direction",
+      "amount": 300000.0,
+      "percentage": 16.3,
+      "notes": "Creative Direction & Event Concept"
+    },
+    {
+      "categoryId": "logo-design",
+      "amount": 90000.0,
+      "percentage": 4.89,
+      "notes": "Logo Design"
+    },
+    {
+      "categoryId": "design-work",
+      "amount": 70000.0,
+      "percentage": 3.8,
+      "notes": "Derivatives- Flyer/Pattern/BG"
+    },
+    {
+      "categoryId": "presentation-design",
+      "amount": 275000.0,
+      "percentage": 14.94,
+      "notes": "CEO Keynote Presentation Design (incl. 100+ slides, graphics, storytelling)"
+    },
+    {
+      "categoryId": "presentation-design",
+      "amount": 90000.0,
+      "percentage": 4.89,
+      "notes": "Speaker Presentations (x3)"
+    },
+    {
+      "categoryId": "screen-content",
+      "amount": 70000.0,
+      "percentage": 3.8,
+      "notes": "Screen / LED Content Management"
+    },
+    {
+      "categoryId": "sustenance",
+      "amount": 120000.0,
+      "percentage": 6.52,
+      "notes": "Sustenance- Food, Drink, Fuel"
+    },
+    {
+      "categoryId": "animation",
+      "amount": 100000.0,
+      "percentage": 5.43,
+      "notes": "Backdrop Animation"
+    },
+    {
+      "categoryId": "music-audio",
+      "amount": 100000.0,
+      "percentage": 5.43,
+      "notes": "Walk-in & Ambience Music"
+    },
+    {
+      "categoryId": "video-production",
+      "amount": 220000.0,
+      "percentage": 11.95,
+      "notes": "Video Coverage (2-cam setup + edits) + BTS + Same day Edit"
+    },
+    {
+      "categoryId": "photography",
+      "amount": 100000.0,
+      "percentage": 5.43,
+      "notes": "Photography"
+    }
+  ],
+  "notes": "Full project breakdown imported from MT_CONNECT_FULL_FINANCIALS_Summary.xlsx"
+}

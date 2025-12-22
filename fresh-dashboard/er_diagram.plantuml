@@ -1,0 +1,257 @@
+@startuml
+title Financial Dashboard - Enhanced Database ER Diagram
+
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide stereotype
+
+' ========== ENTITIES ==========
+entity "users" {
+  * id : uuid <<PK>>
+  --
+  * email : varchar
+  full_name : varchar
+  avatar_url : varchar
+  role : varchar
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "departments" {
+  * id : uuid <<PK>>
+  --
+  * name : varchar
+  * budget : decimal(15,2)
+  * spent : decimal(15,2)
+  manager_id : uuid <<FK>>
+  project_count : integer
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "projects" {
+  * id : uuid <<PK>>
+  --
+  * name : varchar
+  * code : varchar <<U>>
+  description : text
+  * department_id : uuid <<FK>>
+  * budget : decimal(15,2)
+  * spent : decimal(15,2)
+  start_date : date
+  end_date : date
+  * status : varchar
+  manager_id : uuid <<FK>>
+  team_size : integer
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "clients" {
+  * id : uuid <<PK>>
+  --
+  * name : varchar
+  email : varchar
+  phone : varchar
+  address : text
+  company_name : varchar
+  tax_id : varchar
+  payment_terms : varchar
+  notes : text
+  * status : varchar
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "income" {
+  * id : uuid <<PK>>
+  --
+  invoice_number : varchar <<U>>
+  client_id : uuid <<FK>>
+  project_id : uuid <<FK>>
+  department_id : uuid <<FK>>
+  * amount : decimal(15,2)
+  description : text
+  category : varchar
+  * date : date
+  due_date : date
+  * status : varchar
+  payment_method : varchar
+  payment_date : date
+  receipt_url : text
+  created_by : uuid <<FK>>
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "expenses" {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  * department_id : uuid <<FK>>
+  project_id : uuid <<FK>>
+  * amount : decimal(15,2)
+  * description : varchar
+  * category : varchar
+  * date : date
+  * status : varchar
+  receipt_url : text
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "invoices" {
+  * id : uuid <<PK>>
+  --
+  * invoice_number : varchar <<U>>
+  * client_id : uuid <<FK>>
+  * amount : decimal(15,2)
+  * date : date
+  * due_date : date
+  * status : varchar
+  items : jsonb
+  tax_amount : decimal(15,2)
+  total_amount : decimal(15,2)
+  pdf_url : text
+  created_by : uuid <<FK>>
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "bank_statements" {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  * bank_name : varchar
+  account_number : varchar
+  * statement_date : date
+  * file_url : varchar
+  file_size : integer
+  parsed_data : jsonb
+  * status : varchar
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "transactions" {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  * bank_statement_id : uuid <<FK>>
+  * transaction_date : date
+  * description : varchar
+  * amount : decimal(15,2)
+  * type : varchar
+  category : varchar
+  matched_expense_id : uuid <<FK>>
+  matched_income_id : uuid <<FK>>
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "project_team_members" {
+  * id : uuid <<PK>>
+  --
+  * project_id : uuid <<FK>>
+  * user_id : uuid <<FK>>
+  role : varchar
+  hourly_rate : decimal(10,2)
+  start_date : date
+  end_date : date
+  created_at : timestamptz
+}
+
+entity "settings" {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  currency : varchar
+  timezone : varchar
+  date_format : varchar
+  decimal_places : integer
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+' ========== RELATIONSHIPS ==========
+users ||--o{ departments : "departments.manager_id -> users.id"
+users ||--o{ projects : "projects.manager_id -> users.id"
+users ||--o{ income : "income.created_by -> users.id"
+users ||--o{ expenses : "expenses.user_id -> users.id"
+users ||--o{ invoices : "invoices.created_by -> users.id"
+users ||--o{ bank_statements : "bank_statements.user_id -> users.id"
+users ||--o{ transactions : "transactions.user_id -> users.id"
+users ||--o{ project_team_members : "project_team_members.user_id -> users.id"
+users ||--o{ settings : "settings.user_id -> users.id"
+
+departments ||--o{ projects : "projects.department_id -> departments.id"
+departments ||--o{ income : "income.department_id -> departments.id"
+departments ||--o{ expenses : "expenses.department_id -> departments.id"
+
+projects ||--o{ income : "income.project_id -> projects.id"
+projects ||--o{ expenses : "expenses.project_id -> projects.id"
+projects ||--o{ project_team_members : "project_team_members.project_id -> projects.id"
+
+clients ||--o{ income : "income.client_id -> clients.id"
+clients ||--o{ invoices : "invoices.client_id -> clients.id"
+
+bank_statements ||--o{ transactions : "transactions.bank_statement_id -> bank_statements.id"
+
+expenses }o--|| transactions : "transactions.matched_expense_id -> expenses.id"
+income }o--|| transactions : "transactions.matched_income_id -> income.id"
+
+' ========== INDEXES ==========
+note top of projects
+  Indexes:
+  - idx_projects_department_status
+  - idx_projects_status_dates
+  - idx_projects_code (unique)
+end note
+
+note top of income
+  Indexes:
+  - idx_income_project_client
+  - idx_income_status_date
+  - idx_income_invoice_number (unique)
+end note
+
+note top of expenses
+  Indexes:
+  - idx_expenses_department_project
+  - idx_expenses_status_date
+  - idx_expenses_category
+end note
+
+note top of clients
+  Indexes:
+  - idx_clients_status
+  - idx_clients_email (unique where not null)
+  - idx_clients_company_name
+end note
+
+' ========== CONSTRAINTS ==========
+note bottom of income
+  Constraints:
+  - amount > 0
+  - date <= current_date
+  - due_date >= date when not null
+  - status in ('pending', 'paid', 'overdue', 'partially_paid')
+end note
+
+note bottom of expenses
+  Constraints:
+  - amount > 0
+  - date <= current_date
+  - status in ('pending', 'approved', 'rejected', 'paid')
+end note
+
+note bottom of projects
+  Constraints:
+  - budget >= 0
+  - spent >= 0
+  - spent <= budget
+  - end_date >= start_date when not null
+  - status in ('active', 'completed', 'on_hold', 'cancelled')
+end note
+
+@enduml

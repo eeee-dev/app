@@ -1,0 +1,46 @@
+[
+  {
+    "id": "inc_001",
+    "description": "Client Project - Website Redesign",
+    "amount": 25000,
+    "vat_amount": 3750,
+    "vat_rate": 0.15,
+    "vat_exempt": false,
+    "client": "TechCorp Inc.",
+    "date": "2025-12-07T20:38:56.899Z",
+    "status": "received"
+  },
+  {
+    "id": "inc_002",
+    "description": "Monthly Retainer - Marketing Services",
+    "amount": 15000,
+    "vat_amount": 2250,
+    "vat_rate": 0.15,
+    "vat_exempt": false,
+    "client": "Global Retail",
+    "date": "2025-12-10T20:38:56.899Z",
+    "status": "received"
+  },
+  {
+    "id": "inc_003",
+    "description": "Software License Sale",
+    "amount": 8000,
+    "vat_amount": 0,
+    "vat_rate": 0.15,
+    "vat_exempt": true,
+    "client": "StartupXYZ",
+    "date": "2025-12-13T20:38:56.899Z",
+    "status": "pending"
+  },
+  {
+    "id": "inc_004",
+    "description": "Consulting Services",
+    "amount": 12000,
+    "vat_amount": 1800,
+    "vat_rate": 0.15,
+    "vat_exempt": false,
+    "client": "Manufacturing Co.",
+    "date": "2025-12-15T20:38:56.899Z",
+    "status": "received"
+  }
+]

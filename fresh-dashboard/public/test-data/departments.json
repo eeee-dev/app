@@ -1,0 +1,38 @@
+[
+  {
+    "id": "dept_001",
+    "name": "Marketing",
+    "budget": 50000,
+    "spent": 32000,
+    "manager": "Alice Johnson",
+    "status": "active",
+    "created_at": "2025-11-17T20:38:56.898Z"
+  },
+  {
+    "id": "dept_002",
+    "name": "Sales",
+    "budget": 75000,
+    "spent": 62000,
+    "manager": "Bob Smith",
+    "status": "active",
+    "created_at": "2025-11-22T20:38:56.899Z"
+  },
+  {
+    "id": "dept_003",
+    "name": "Engineering",
+    "budget": 120000,
+    "spent": 98000,
+    "manager": "Charlie Davis",
+    "status": "active",
+    "created_at": "2025-11-27T20:38:56.899Z"
+  },
+  {
+    "id": "dept_004",
+    "name": "Operations",
+    "budget": 45000,
+    "spent": 38000,
+    "manager": "Diana Miller",
+    "status": "active",
+    "created_at": "2025-12-02T20:38:56.899Z"
+  }
+]

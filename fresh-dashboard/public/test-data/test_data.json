@@ -1,0 +1,181 @@
+{
+  "departments": [
+    {
+      "id": "dept_001",
+      "name": "Marketing",
+      "budget": 50000,
+      "spent": 32000,
+      "manager": "Alice Johnson",
+      "status": "active",
+      "created_at": "2025-11-17T20:38:56.898Z"
+    },
+    {
+      "id": "dept_002",
+      "name": "Sales",
+      "budget": 75000,
+      "spent": 62000,
+      "manager": "Bob Smith",
+      "status": "active",
+      "created_at": "2025-11-22T20:38:56.899Z"
+    },
+    {
+      "id": "dept_003",
+      "name": "Engineering",
+      "budget": 120000,
+      "spent": 98000,
+      "manager": "Charlie Davis",
+      "status": "active",
+      "created_at": "2025-11-27T20:38:56.899Z"
+    },
+    {
+      "id": "dept_004",
+      "name": "Operations",
+      "budget": 45000,
+      "spent": 38000,
+      "manager": "Diana Miller",
+      "status": "active",
+      "created_at": "2025-12-02T20:38:56.899Z"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "exp_001",
+      "department_id": "dept_001",
+      "description": "Google Ads Campaign",
+      "amount": 2500,
+      "vat_amount": 375,
+      "vat_rate": 0.15,
+      "vat_exempt": false,
+      "category": "Advertising",
+      "date": "2025-12-12T20:38:56.899Z",
+      "status": "approved"
+    },
+    {
+      "id": "exp_002",
+      "department_id": "dept_002",
+      "description": "Sales Conference Tickets",
+      "amount": 1200,
+      "vat_amount": 180,
+      "vat_rate": 0.15,
+      "vat_exempt": false,
+      "category": "Training",
+      "date": "2025-12-14T20:38:56.899Z",
+      "status": "pending"
+    },
+    {
+      "id": "exp_003",
+      "department_id": "dept_003",
+      "description": "Development Software License",
+      "amount": 4500,
+      "vat_amount": 0,
+      "vat_rate": 0.15,
+      "vat_exempt": true,
+      "category": "Software",
+      "date": "2025-12-15T20:38:56.899Z",
+      "status": "approved"
+    },
+    {
+      "id": "exp_004",
+      "department_id": "dept_004",
+      "description": "Office Supplies",
+      "amount": 850,
+      "vat_amount": 127.5,
+      "vat_rate": 0.15,
+      "vat_exempt": false,
+      "category": "Supplies",
+      "date": "2025-12-16T20:38:56.899Z",
+      "status": "approved"
+    }
+  ],
+  "income": [
+    {
+      "id": "inc_001",
+      "description": "Client Project - Website Redesign",
+      "amount": 25000,
+      "vat_amount": 3750,
+      "vat_rate": 0.15,
+      "vat_exempt": false,
+      "client": "TechCorp Inc.",
+      "date": "2025-12-07T20:38:56.899Z",
+      "status": "received"
+    },
+    {
+      "id": "inc_002",
+      "description": "Monthly Retainer - Marketing Services",
+      "amount": 15000,
+      "vat_amount": 2250,
+      "vat_rate": 0.15,
+      "vat_exempt": false,
+      "client": "Global Retail",
+      "date": "2025-12-10T20:38:56.899Z",
+      "status": "received"
+    },
+    {
+      "id": "inc_003",
+      "description": "Software License Sale",
+      "amount": 8000,
+      "vat_amount": 0,
+      "vat_rate": 0.15,
+      "vat_exempt": true,
+      "client": "StartupXYZ",
+      "date": "2025-12-13T20:38:56.899Z",
+      "status": "pending"
+    },
+    {
+      "id": "inc_004",
+      "description": "Consulting Services",
+      "amount": 12000,
+      "vat_amount": 1800,
+      "vat_rate": 0.15,
+      "vat_exempt": false,
+      "client": "Manufacturing Co.",
+      "date": "2025-12-15T20:38:56.899Z",
+      "status": "received"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv_001",
+      "invoice_number": "INV-2024-001",
+      "client": "TechCorp Inc.",
+      "amount": 25000,
+      "vat_amount": 3750,
+      "vat_rate": 0.15,
+      "vat_exempt": false,
+      "date": "2025-12-07T20:38:56.899Z",
+      "due_date": "2026-01-06T20:38:56.899Z",
+      "status": "paid"
+    },
+    {
+      "id": "inv_002",
+      "invoice_number": "INV-2024-002",
+      "client": "Global Retail",
+      "amount": 15000,
+      "vat_amount": 2250,
+      "vat_rate": 0.15,
+      "vat_exempt": false,
+      "date": "2025-12-10T20:38:56.899Z",
+      "due_date": "2026-01-09T20:38:56.899Z",
+      "status": "paid"
+    },
+    {
+      "id": "inv_003",
+      "invoice_number": "INV-2024-003",
+      "client": "StartupXYZ",
+      "amount": 8000,
+      "vat_amount": 0,
+      "vat_rate": 0.15,
+      "vat_exempt": true,
+      "date": "2025-12-13T20:38:56.899Z",
+      "due_date": "2026-01-12T20:38:56.899Z",
+      "status": "pending"
+    }
+  ],
+  "summary": {
+    "total_departments": 4,
+    "total_expenses": 9050,
+    "total_income": 60000,
+    "total_vat_collected": 7800,
+    "total_vat_paid": 682.5
+  }
+}
