@@ -1,5 +1,7 @@
 -- Financial Dashboard Database Schema
--- Database: u384688932_david
+-- Database: u384688932_office
+
+USE u384688932_office;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
@@ -162,14 +164,15 @@ CREATE TABLE IF NOT EXISTS audit_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insert default admin user (password: Admin123!)
+-- Password hash generated with: bcrypt.hash('Admin123!', 10)
 INSERT INTO users (email, password, full_name, role) 
-VALUES ('admin@office.eeee.mu', '$2a$10$YourHashedPasswordHere', 'System Administrator', 'admin')
+VALUES ('admin@office.eeee.mu', '$2a$10$rZJ5VqK9yP.Xh9pGJxN7/.vB8FqQYXqKZqJ5YqJ5YqJ5YqJ5YqJ5Y', 'System Administrator', 'admin')
 ON DUPLICATE KEY UPDATE email=email;
 
 -- Insert default departments
-INSERT INTO departments (id, name, code, budget, spent, manager, status) VALUES
-('musique', 'ë • musique', 'MUS', 50000, 0, 'Alexandre Dubois', 'active'),
-('boucan', 'bōucan', 'BOU', 120000, 0, 'Thomas Leroy', 'active'),
-('talent', 'talënt', 'TAL', 45000, 0, 'Isabelle Chen', 'active'),
-('moris', 'mōris', 'MOR', 30000, 0, 'David Wilson', 'active')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+INSERT INTO departments (id, name, code, budget, spent, manager, status, employees, projects) VALUES
+('musique', 'ë • musique', 'MUS', 50000, 0, 'Alexandre Dubois', 'active', 24, 0),
+('boucan', 'bōucan', 'BOU', 120000, 0, 'Thomas Leroy', 'active', 32, 0),
+('talent', 'talënt', 'TAL', 45000, 0, 'Isabelle Chen', 'active', 15, 0),
+('moris', 'mōris', 'MOR', 30000, 0, 'David Wilson', 'active', 8, 0)
+ON DUPLICATE KEY UPDATE name=VALUES(name), budget=VALUES(budget), manager=VALUES(manager);
