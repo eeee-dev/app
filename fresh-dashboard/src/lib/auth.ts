@@ -70,7 +70,8 @@ class AuthService {
 
   async getSession(): Promise<Session | null> {
     if (!supabase) {
-      throw new Error('Supabase client not initialized');
+      console.warn('Supabase client not initialized');
+      return null;
     }
 
     const { data, error } = await supabase.auth.getSession();
@@ -100,7 +101,17 @@ class AuthService {
 
   onAuthStateChange(callback: (user: User | null) => void) {
     if (!supabase) {
-      throw new Error('Supabase client not initialized');
+      console.warn('Supabase client not initialized');
+      // Return a mock subscription object
+      return {
+        data: {
+          subscription: {
+            unsubscribe: () => {
+              console.log('Mock unsubscribe called');
+            }
+          }
+        }
+      };
     }
 
     return supabase.auth.onAuthStateChange((_event, session) => {
@@ -110,7 +121,8 @@ class AuthService {
 
   async getCurrentUser(): Promise<User | null> {
     if (!supabase) {
-      throw new Error('Supabase client not initialized');
+      console.warn('Supabase client not initialized');
+      return null;
     }
 
     const { data: { user }, error } = await supabase.auth.getUser();
