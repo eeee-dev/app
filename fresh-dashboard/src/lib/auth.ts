@@ -101,13 +101,13 @@ class AuthService {
 
   onAuthStateChange(callback: (user: User | null) => void) {
     if (!supabase) {
-      console.warn('Supabase client not initialized');
-      // Return a mock subscription object
+      console.warn('Supabase client not initialized - returning mock subscription');
+      // Return a mock subscription object that matches the expected structure
       return {
         data: {
           subscription: {
             unsubscribe: () => {
-              console.log('Mock unsubscribe called');
+              console.log('Mock subscription unsubscribed');
             }
           }
         }
