@@ -1,28 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_CONFIG } from '../config/supabase-config';
 
-// Use environment variables if available (development), otherwise use config (production)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || SUPABASE_CONFIG.url;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || SUPABASE_CONFIG.anonKey;
-
-// Validate that we have the required configuration
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase configuration is missing. Please check your environment variables or config file.');
-}
+const supabaseUrl = 'https://bxsylvytnnpbbneyhkcs.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4c3lsdnl0bm5wYmJuZXloa2NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1MjE2NjIsImV4cCI6MjA4MjA5NzY2Mn0.ExNM5lJeTqrTp4lxYkkwyCdps43Zh2HqoEAHnEAzeU0';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Helper function to handle Supabase errors
-export const handleSupabaseError = (error: unknown): string => {
-  if (error && typeof error === 'object' && 'message' in error) {
-    return (error as { message: string }).message;
-  }
-  return 'An unknown error occurred';
-};
-
-// Helper function to get current user
-export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error) throw error;
-  return user;
-};
