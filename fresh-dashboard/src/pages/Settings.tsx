@@ -91,7 +91,7 @@ const Settings: React.FC = () => {
     {
       id: '2',
       title: 'Budget threshold exceeded',
-      description: 'zimazë department has exceeded 90% of allocated budget',
+      description: 'ë • musique department has exceeded 90% of allocated budget',
       date: '2024-01-14',
       read: false,
       type: 'warning'
@@ -642,7 +642,7 @@ const Settings: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="finance">Finance</SelectItem>
                     <SelectItem value="musique">musiquë</SelectItem>
-                    <SelectItem value="zimaze">zimazë</SelectItem>
+                    <SelectItem value="musique">ë • musique</SelectItem>
                     <SelectItem value="boucan">bōucan</SelectItem>
                     <SelectItem value="talent">talënt</SelectItem>
                     <SelectItem value="moris">mōris</SelectItem>
@@ -727,7 +727,7 @@ const Settings: React.FC = () => {
                           <SelectContent>
                             <SelectItem value="finance">Finance</SelectItem>
                             <SelectItem value="musique">musiquë</SelectItem>
-                            <SelectItem value="zimaze">zimazë</SelectItem>
+                            <SelectItem value="musique">ë • musique</SelectItem>
                             <SelectItem value="boucan">bōucan</SelectItem>
                             <SelectItem value="talent">talënt</SelectItem>
                             <SelectItem value="moris">mōris</SelectItem>

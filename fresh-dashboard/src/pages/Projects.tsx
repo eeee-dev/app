@@ -61,7 +61,7 @@ const DEFAULT_PROJECTS: Project[] = [
     name: 'Album Production',
     code: 'ALB-2025',
     department_id: 'musique',
-    department_name: 'musiquë',
+    department_name: 'ë • musique',
     description: 'Production of new music album for international release',
     budget: 150000,
     spent: 95000,
@@ -75,8 +75,8 @@ const DEFAULT_PROJECTS: Project[] = [
     id: 'proj-002',
     name: 'Visual Identity Redesign',
     code: 'VIR-2025',
-    department_id: 'zimaze',
-    department_name: 'zimazë',
+    department_id: 'musique',
+    department_name: 'ë • musique',
     description: 'Complete visual identity redesign for corporate branding',
     budget: 80000,
     spent: 45000,
@@ -136,7 +136,7 @@ const DEFAULT_PROJECTS: Project[] = [
     name: 'Music Video Production',
     code: 'MVP-2025',
     department_id: 'musique',
-    department_name: 'musiquë',
+    department_name: 'ë • musique',
     description: 'Production of high-quality music videos for top artists',
     budget: 100000,
     spent: 65000,
@@ -152,8 +152,7 @@ const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   
   const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([
-    { id: 'musique', name: 'musiquë' },
-    { id: 'zimaze', name: 'zimazë' },
+    { id: 'musique', name: 'ë • musique' },
     { id: 'boucan', name: 'bōucan' },
     { id: 'talent', name: 'talënt' },
     { id: 'moris', name: 'mōris' }
@@ -392,7 +391,7 @@ const Projects: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3">
           <Button 
-            className="border border-gray-300 bg-transparent hover:bg-gray-100"
+            className="border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
             onClick={() => toast.info('Project analytics dashboard would open')}
           >
             View Analytics
@@ -405,7 +404,7 @@ const Projects: React.FC = () => {
                 Create Project
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px]">
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
               </DialogHeader>
@@ -610,7 +609,7 @@ const Projects: React.FC = () => {
 
       <div className="flex justify-end">
         <Button 
-          className="gap-2 border border-gray-300 bg-transparent hover:bg-gray-100"
+          className="gap-2 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
           onClick={handleExportProjects}
         >
           <Download className="h-4 w-4" />
@@ -698,13 +697,13 @@ const Projects: React.FC = () => {
                         
                         <div className="flex justify-end space-x-2">
                           <Button 
-                            className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
+                            className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                             onClick={() => toast.info(`Viewing project: ${project.name}`)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button 
-                            className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
+                            className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                             onClick={() => handleEditProject(project)}
                           >
                             <Edit className="h-4 w-4" />

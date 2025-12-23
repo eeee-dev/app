@@ -44,7 +44,7 @@ interface NewDepartmentForm {
 const DEFAULT_DEPARTMENTS: Department[] = [
   {
     id: 'musique',
-    name: 'musiquë',
+    name: 'ë • musique',
     code: 'MUS',
     manager: 'Alexandre Dubois',
     employees: 24,
@@ -53,18 +53,6 @@ const DEFAULT_DEPARTMENTS: Department[] = [
     projects: 8,
     status: 'active',
     icon: '/assets/department-music-icon_variant_1_variant_3.png'
-  },
-  {
-    id: 'zimaze',
-    name: 'zimazë',
-    code: 'ZIM',
-    manager: 'Sophie Martin',
-    employees: 18,
-    budget: 75000,
-    spent: 68000,
-    projects: 12,
-    status: 'active',
-    icon: '/assets/department-visual-icon_variant_1_variant_3.png'
   },
   {
     id: 'boucan',
@@ -122,8 +110,8 @@ const Departments: React.FC = () => {
 
   const getDepartmentIcon = useCallback((name: string) => {
     const icons: Record<string, string> = {
-      'musiquë': '/assets/department-music-icon_variant_1_variant_4.png',
-      'zimazë': '/assets/department-visual-icon_variant_1_variant_4.png',
+      'ë • musique': '/assets/department-music-icon_variant_1_variant_4.png',
+      'musiquë': '/assets/department-music-icon_variant_1_variant_4_variant_1.png',
       'bōucan': '/assets/department-studio-icon_variant_1_variant_4.png',
       'talënt': '/assets/department-talent-icon_variant_1_variant_4.png',
       'mōris': '/assets/department-store-icon_variant_1_variant_4.png'
@@ -131,7 +119,7 @@ const Departments: React.FC = () => {
     
     const lowerName = name.toLowerCase();
     for (const [key, value] of Object.entries(icons)) {
-      if (lowerName.includes(key.toLowerCase().replace('ë', 'e').replace('ō', 'o'))) {
+      if (lowerName.includes(key.toLowerCase().replace(/ë|•/g, '').replace(/ō/g, 'o'))) {
         return value;
       }
     }
@@ -353,7 +341,7 @@ const Departments: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3">
           <Button 
-            className="border border-gray-300 bg-transparent hover:bg-gray-100"
+            className="border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
             onClick={() => toast.info('Add Team functionality would open team management')}
           >
             Add Team
@@ -365,7 +353,7 @@ const Departments: React.FC = () => {
                 Create Department
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Department</DialogTitle>
               </DialogHeader>
@@ -568,7 +556,7 @@ const Departments: React.FC = () => {
 
       <div className="flex justify-end">
         <Button 
-          className="gap-2 border border-gray-300 bg-transparent hover:bg-gray-100"
+          className="gap-2 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
           onClick={handleExportDepartments}
         >
           <Download className="h-4 w-4" />
@@ -630,13 +618,13 @@ const Departments: React.FC = () => {
                           </div>
                           <div className="mt-2 flex justify-end space-x-2">
                             <Button 
-                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
+                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                               onClick={() => toast.info(`Viewing department: ${dept.name}`)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button 
-                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
+                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                               onClick={() => toast.info(`Editing department: ${dept.name}`)}
                             >
                               <Edit className="h-4 w-4" />
@@ -663,31 +651,31 @@ const Departments: React.FC = () => {
               <CardContent>
                 <div className="space-y-3">
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                     onClick={() => toast.info('Opening department analytics dashboard')}
                   >
                     View Department Analytics
                   </Button>
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                     onClick={() => toast.info('Opening budget adjustment interface')}
                   >
                     Adjust Budget Allocation
                   </Button>
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                     onClick={() => toast.info('Opening team management interface')}
                   >
                     Manage Team Members
                   </Button>
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                     onClick={() => toast.info('Generating department report')}
                   >
                     Generate Department Report
                   </Button>
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                     onClick={() => toast.info('Setting performance goals')}
                   >
                     Set Performance Goals
