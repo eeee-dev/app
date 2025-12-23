@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { testConnection } from './config/database.js';
+import { testConnection } from './config/supabase.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 // Import routes
@@ -33,7 +33,7 @@ app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: 'Too many requests from this IP, please try again later.'
 });
@@ -55,7 +55,8 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV,
+    database: 'Supabase'
   });
 });
 
@@ -75,23 +76,23 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
-    // Test database connection
+    // Test Supabase connection
     const dbConnected = await testConnection();
     
     if (!dbConnected) {
-      console.error('Failed to connect to database. Please check your configuration.');
-      process.exit(1);
+      console.log('⚠️  Supabase connection test failed, but continuing...');
+      console.log('📝 You may need to run the database setup script manually');
     }
 
     app.listen(PORT, () => {
       console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🚀 Financial Dashboard API Server                      ║
+║   🚀 Financial Dashboard API Server (Supabase)           ║
 ║                                                           ║
 ║   Environment: ${process.env.NODE_ENV || 'development'}                                  ║
 ║   Port: ${PORT}                                              ║
-║   Database: ${process.env.DB_NAME}                           ║
+║   Database: Supabase PostgreSQL                           ║
 ║                                                           ║
 ║   API Endpoints:                                          ║
 ║   - Health: http://localhost:${PORT}/health                  ║
@@ -101,7 +102,8 @@ const startServer = async () => {
 ║   - Expenses: http://localhost:${PORT}/api/expenses          ║
 ║   - Income: http://localhost:${PORT}/api/income              ║
 ║                                                           ║
-║   📚 Documentation: See README.md                         ║
+║   📚 Supabase Dashboard:                                  ║
+║   https://supabase.com/dashboard/project/ssekkfxkigyavgljszpc ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
       `);
