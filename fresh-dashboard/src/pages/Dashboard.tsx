@@ -6,7 +6,10 @@ import StatsCards from '@/components/dashboard/StatsCards';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import RecentIncome from '@/components/dashboard/RecentIncome';
 import FinancialAnalytics from '@/components/dashboard/FinancialAnalytics';
-import { financialDashboardAPI } from '@/lib/supabase';
+import { departmentsService } from '@/services/departments';
+import { expensesService } from '@/services/expenses';
+import { incomeService } from '@/services/income';
+import { projectsService } from '@/services/projects';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrencyMUR } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -41,62 +44,6 @@ interface Income {
   invoiceNumber: string;
 }
 
-interface ApiDepartment {
-  id: string;
-  name: string;
-  budget: number;
-  spent: number;
-  manager?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface ApiExpense {
-  id: string;
-  user_id: string;
-  department_id: string;
-  amount: number;
-  description: string;
-  category: string;
-  date: string;
-  status: string;
-  receipt_url?: string;
-  created_at?: string;
-  updated_at?: string;
-  departments?: {
-    name: string;
-    budget: number;
-    spent: number;
-  };
-}
-
-interface ApiIncome {
-  id: string;
-  invoice_number: string;
-  client_name: string;
-  amount: number;
-  description: string;
-  date: string;
-  status: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface DashboardStats {
-  totalExpenses: number;
-  totalIncome: number;
-  pendingInvoices: number;
-  totalBudget: number;
-  totalSpent: number;
-  budgetUtilization: number;
-  departments: Array<{
-    name: string;
-    budget: number;
-    spent: number;
-    utilization: number;
-  }>;
-}
-
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [totalIncome, setTotalIncome] = useState(0);
@@ -121,19 +68,19 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       
       try {
-        // Fetch real data from API
-        const [departmentsData, expensesData, incomeData, dashboardStats] = await Promise.all([
-          financialDashboardAPI.getDepartments(),
-          financialDashboardAPI.getExpenses(),
-          financialDashboardAPI.getIncome(),
-          financialDashboardAPI.getDashboardStats()
+        // Fetch real data from Supabase
+        const [departmentsData, expensesData, incomeData, projectsData] = await Promise.all([
+          departmentsService.getAll(),
+          expensesService.getAll(),
+          incomeService.getAll(),
+          projectsService.getAll()
         ]);
 
         // Format departments for display
-        const formattedDepartments: Department[] = (departmentsData as ApiDepartment[]).map(dept => ({
+        const formattedDepartments: Department[] = departmentsData.map(dept => ({
           id: dept.id,
           name: dept.name,
-          code: dept.name.substring(0, 3).toUpperCase(),
+          code: dept.code,
           allocated: dept.budget || 0,
           spent: dept.spent || 0,
           utilization: dept.budget > 0 ? ((dept.spent || 0) / dept.budget) * 100 : 0,
@@ -141,39 +88,43 @@ const Dashboard: React.FC = () => {
         }));
 
         // Format recent expenses
-        const formattedExpenses: Expense[] = (expensesData as ApiExpense[]).map(expense => ({
+        const formattedExpenses: Expense[] = expensesData.slice(0, 5).map(expense => ({
           id: expense.id,
-          department: expense.departments?.name || 'Unknown',
+          department: expense.department_id || 'Unknown',
           description: expense.description,
           amount: expense.amount,
           status: expense.status as 'pending' | 'paid' | 'overdue' | 'approved',
           date: expense.date,
-          invoiceNumber: `INV-${expense.id.padStart(3, '0')}`
+          invoiceNumber: `EXP-${expense.id.substring(0, 8)}`
         }));
 
         // Format recent income
-        const formattedIncome: Income[] = (incomeData as ApiIncome[]).map(income => ({
+        const formattedIncome: Income[] = incomeData.slice(0, 5).map(income => ({
           id: income.id,
           clientName: income.client_name,
-          description: income.description,
+          description: income.description || '',
           amount: income.amount,
           status: income.status as 'pending' | 'received' | 'overdue',
           date: income.date,
           invoiceNumber: income.invoice_number
         }));
 
-        // Update stats
-        const statsData = dashboardStats as DashboardStats;
-        setTotalIncome(statsData.totalIncome || 0);
-        setTotalExpenses(statsData.totalExpenses || 0);
-        setNetProfit((statsData.totalIncome || 0) - (statsData.totalExpenses || 0));
-        setActiveProjects(formattedDepartments.length);
+        // Calculate stats
+        const totalIncomeAmount = incomeData.reduce((sum, item) => sum + item.amount, 0);
+        const totalExpensesAmount = expensesData.reduce((sum, item) => sum + item.amount, 0);
+        const activeProjectsCount = projectsData.filter(p => p.status === 'active').length;
+
+        setTotalIncome(totalIncomeAmount);
+        setTotalExpenses(totalExpensesAmount);
+        setNetProfit(totalIncomeAmount - totalExpensesAmount);
+        setActiveProjects(activeProjectsCount);
 
         setDepartments(formattedDepartments);
-        setRecentExpenses(formattedExpenses.slice(0, 5));
-        setRecentIncome(formattedIncome.slice(0, 5));
+        setRecentExpenses(formattedExpenses);
+        setRecentIncome(formattedIncome);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+        toast.error('Failed to load dashboard data. Please try again.');
         setDepartments([]);
         setRecentExpenses([]);
         setRecentIncome([]);

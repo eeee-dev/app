@@ -10,8 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { financialDashboardAPI } from '@/lib/supabase';
+import { departmentsService, Department } from '@/services/departments';
 import { formatCurrencyMUR } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Invoice {
   id: string;
@@ -24,21 +25,6 @@ interface Invoice {
   status: string;
   tax_amount: number;
   total_amount: number;
-  created_at?: string;
-  updated_at?: string;
-  departments?: {
-    name: string;
-    budget: number;
-    spent: number;
-  };
-}
-
-interface Department {
-  id: string;
-  name: string;
-  budget: number;
-  spent: number;
-  manager?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -85,14 +71,13 @@ const Invoices: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [invoicesData, departmentsData] = await Promise.all([
-        financialDashboardAPI.getInvoices(),
-        financialDashboardAPI.getDepartments()
-      ]);
-      setInvoices(invoicesData as Invoice[]);
-      setDepartments(departmentsData as Department[]);
+      const departmentsData = await departmentsService.getAll();
+      setDepartments(departmentsData);
+      // For now, using mock data for invoices since we don't have an invoices service yet
+      setInvoices([]);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -127,48 +112,23 @@ const Invoices: React.FC = () => {
     }
   };
 
-  const handleUpdateStatus = async (id: string, status: string) => {
-    try {
-      await financialDashboardAPI.updateInvoiceStatus(id, status);
-      await loadData();
-    } catch (error) {
-      console.error('Error updating invoice status:', error);
-    }
-  };
-
   const handleSendReminder = async (invoiceId: string, clientName: string) => {
-    try {
-      // In a real implementation, this would call an API to send email
-      console.log(`Sending reminder for invoice ${invoiceId} to client ${clientName}`);
-      alert(`Reminder email would be sent to ${clientName} for invoice ${invoiceId}`);
-    } catch (error) {
-      console.error('Error sending reminder:', error);
-      alert('Error sending reminder. Please try again.');
-    }
+    console.log(`Sending reminder for invoice ${invoiceId} to client ${clientName}`);
+    toast.success(`Reminder email would be sent to ${clientName}`);
   };
 
   const handleDeleteInvoice = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
-      try {
-        // In a real implementation, this would call an API to delete
-        // For now, we'll just update locally
-        const updatedInvoices = invoices.filter(invoice => invoice.id !== id);
-        setInvoices(updatedInvoices);
-        console.log(`Invoice ${id} deleted locally`);
-      } catch (error) {
-        console.error('Error deleting invoice:', error);
-        alert('Error deleting invoice. Please try again.');
-      }
+      const updatedInvoices = invoices.filter(invoice => invoice.id !== id);
+      setInvoices(updatedInvoices);
+      toast.success('Invoice deleted successfully');
     }
   };
 
   const handleCreateInvoice = async () => {
     try {
-      // Calculate total amount including tax
       const total = newInvoice.amount + newInvoice.tax_amount;
       
-      // In a real implementation, this would call an API to create invoice
-      // For now, we'll create a local invoice
       const newInvoiceData: Invoice = {
         id: `inv-${Date.now()}`,
         invoice_number: newInvoice.invoice_number,
@@ -184,10 +144,8 @@ const Invoices: React.FC = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Add to local state
       setInvoices([...invoices, newInvoiceData]);
       
-      // Reset form
       setNewInvoice({
         invoice_number: `INV-${Date.now().toString().slice(-6)}`,
         client_name: '',
@@ -201,13 +159,11 @@ const Invoices: React.FC = () => {
         description: ''
       });
 
-      // Close dialog
       setIsCreateDialogOpen(false);
-      
-      alert('Invoice created successfully!');
+      toast.success('Invoice created successfully!');
     } catch (error) {
       console.error('Error creating invoice:', error);
-      alert('Error creating invoice. Please try again.');
+      toast.error('Error creating invoice. Please try again.');
     }
   };
 
@@ -215,7 +171,6 @@ const Invoices: React.FC = () => {
     setNewInvoice(prev => {
       const updated = { ...prev, [field]: value };
       
-      // Recalculate total amount when amount or tax changes
       if (field === 'amount' || field === 'tax_amount') {
         const amount = field === 'amount' ? Number(value) : prev.amount;
         const tax = field === 'tax_amount' ? Number(value) : prev.tax_amount;
@@ -228,7 +183,6 @@ const Invoices: React.FC = () => {
 
   const handleExportInvoices = () => {
     try {
-      // Create CSV content
       const headers = ['Invoice #', 'Client', 'Department', 'Amount', 'Tax', 'Total', 'Date', 'Due Date', 'Status'];
       const csvContent = [
         headers.join(','),
@@ -245,7 +199,6 @@ const Invoices: React.FC = () => {
         ].join(','))
       ].join('\n');
 
-      // Create blob and download
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -256,115 +209,10 @@ const Invoices: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       
-      alert('Invoices exported successfully!');
+      toast.success('Invoices exported successfully!');
     } catch (error) {
       console.error('Error exporting invoices:', error);
-      alert('Error exporting invoices. Please try again.');
-    }
-  };
-
-  const handleFilterInvoices = () => {
-    // Open advanced filter panel
-    const filterOptions = {
-      dateRange: 'last30days',
-      amountMin: 0,
-      amountMax: 1000000,
-      department: departmentFilter === 'all' ? 'all' : departments.find(d => d.id === departmentFilter)?.name || 'all'
-    };
-    
-    const filterMessage = `Opening advanced filter panel with options:
-    - Date Range: ${filterOptions.dateRange}
-    - Amount Range: ${formatCurrencyMUR(filterOptions.amountMin)} - ${formatCurrencyMUR(filterOptions.amountMax)}
-    - Department: ${filterOptions.department}`;
-    
-    alert(filterMessage);
-    
-    // In a real implementation, this would open a filter dialog
-    // For now, we'll apply some sample filters
-    setStatusFilter('pending');
-    setDepartmentFilter('all');
-    alert('Applied filter: Show only pending invoices');
-  };
-
-  const handleGenerateMonthlyReport = () => {
-    try {
-      // Calculate monthly totals
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      
-      const monthlyInvoices = invoices.filter(invoice => {
-        const invoiceDate = new Date(invoice.date);
-        return invoiceDate.getMonth() === currentMonth && invoiceDate.getFullYear() === currentYear;
-      });
-      
-      const totalAmount = monthlyInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-      const totalTax = monthlyInvoices.reduce((sum, invoice) => sum + invoice.tax_amount, 0);
-      const paidInvoices = monthlyInvoices.filter(inv => inv.status === 'paid').length;
-      const pendingInvoices = monthlyInvoices.filter(inv => inv.status === 'pending').length;
-      
-      // Group by department for report
-      const departmentTotals: Record<string, { count: number; amount: number }> = {};
-      monthlyInvoices.forEach(invoice => {
-        const deptName = invoice.department_id ? departments.find(d => d.id === invoice.department_id)?.name || 'Unassigned' : 'Unassigned';
-        if (!departmentTotals[deptName]) {
-          departmentTotals[deptName] = { count: 0, amount: 0 };
-        }
-        departmentTotals[deptName].count++;
-        departmentTotals[deptName].amount += invoice.amount;
-      });
-      
-      // Create report content
-      const reportContent = `
-Monthly Invoice Report - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-
-Total Invoices: ${monthlyInvoices.length}
-Total Amount: ${formatCurrencyMUR(totalAmount)}
-Total Tax: ${formatCurrencyMUR(totalTax)}
-Paid Invoices: ${paidInvoices}
-Pending Invoices: ${pendingInvoices}
-
-Department Breakdown:
-${Object.entries(departmentTotals).map(([dept, data]) => `- ${dept}: ${data.count} invoices, ${formatCurrencyMUR(data.amount)}`).join('\n')}
-
-Invoice Details:
-${monthlyInvoices.map(inv => `- ${inv.invoice_number}: ${inv.client_name} - ${formatCurrencyMUR(inv.amount)} (${inv.status})${inv.department_id ? ` [${departments.find(d => d.id === inv.department_id)?.name || 'Unknown'}]` : ''}`).join('\n')}
-      `.trim();
-
-      // Create blob and download
-      const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `monthly_invoice_report_${currentYear}_${currentMonth + 1}.txt`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      alert('Monthly report generated successfully!');
-    } catch (error) {
-      console.error('Error generating report:', error);
-      alert('Error generating report. Please try again.');
-    }
-  };
-
-  const handleSendBulkReminders = () => {
-    try {
-      const overdueInvoices = invoices.filter(inv => 
-        inv.status === 'overdue' || 
-        (inv.status === 'pending' && new Date(inv.due_date) < new Date())
-      );
-      
-      if (overdueInvoices.length === 0) {
-        alert('No overdue invoices found to send reminders.');
-        return;
-      }
-      
-      const clientNames = [...new Set(overdueInvoices.map(inv => inv.client_name))];
-      alert(`Would send reminders to ${clientNames.length} clients for ${overdueInvoices.length} overdue invoices.`);
-    } catch (error) {
-      console.error('Error sending bulk reminders:', error);
-      alert('Error sending bulk reminders. Please try again.');
+      toast.error('Error exporting invoices. Please try again.');
     }
   };
 
@@ -375,17 +223,28 @@ ${monthlyInvoices.map(inv => `- ${inv.invoice_number}: ${inv.client_name} - ${fo
 
   const uniqueClients = Array.from(new Set(invoices.map(inv => inv.client_name)));
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading invoices...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Invoice Management</h1>
-          <p className="text-gray-600 mt-1">Create, track, and manage client invoices with department classification</p>
+          <p className="text-gray-600 mt-1">Create, track, and manage client invoices</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button 
             className="gap-2 border border-gray-300 bg-transparent hover:bg-gray-100"
-            onClick={handleFilterInvoices}
+            onClick={() => toast.info('Filter functionality would open filter panel')}
           >
             <Filter className="h-4 w-4" />
             Filter
@@ -442,7 +301,7 @@ ${monthlyInvoices.map(inv => `- ${inv.invoice_number}: ${inv.client_name} - ${fo
                         <SelectValue placeholder="Select department" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Not assigned to department</SelectItem>
+                        <SelectItem value="none">Not assigned to department</SelectItem>
                         {departments.map(dept => (
                           <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                         ))}
@@ -507,17 +366,6 @@ ${monthlyInvoices.map(inv => `- ${inv.invoice_number}: ${inv.client_name} - ${fo
                       onChange={(e) => handleInputChange('due_date', e.target.value)}
                     />
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Textarea
-                    id="description"
-                    value={newInvoice.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Enter invoice description or notes..."
-                    rows={3}
-                  />
                 </div>
                 
                 <div className="bg-gray-50 p-4 rounded-md">
@@ -589,240 +437,59 @@ ${monthlyInvoices.map(inv => `- ${inv.invoice_number}: ${inv.client_name} - ${fo
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle>All Invoices</CardTitle>
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input 
-                    placeholder="Search invoices..." 
-                    className="w-full md:w-64 pl-10"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="sent">Sent</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Clients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Clients</SelectItem>
-                    {uniqueClients.map(client => (
-                      <SelectItem key={client} value={client}>{client}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Departments" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {departments.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+          <CardTitle>All Invoices</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all">
-            <TabsList>
-              <TabsTrigger value="all">All Invoices</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="overdue">Overdue</TabsTrigger>
-              <TabsTrigger value="paid">Paid</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="mt-6">
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-gray-500 mt-4">Loading invoices...</p>
-                </div>
-              ) : filteredInvoices.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-gray-400 mb-4">No invoices found</div>
-                  <p className="text-gray-500">Try adjusting your filters or create a new invoice</p>
-                </div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredInvoices.map((invoice) => {
-                        const isOverdue = invoice.status === 'overdue' || 
-                          (invoice.status === 'pending' && new Date(invoice.due_date) < new Date());
-                        
-                        return (
-                          <TableRow key={invoice.id} className={isOverdue ? 'bg-red-50' : ''}>
-                            <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                            <TableCell>{invoice.client_name}</TableCell>
-                            <TableCell>
-                              {invoice.department_id ? (
-                                <div className="flex items-center space-x-1">
-                                  <Building className="h-3 w-3 text-gray-500" />
-                                  <span>{departments.find(d => d.id === invoice.department_id)?.name || 'Unknown Department'}</span>
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 text-sm">Not assigned</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="font-medium">{formatCurrencyMUR(invoice.amount)}</TableCell>
-                            <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
-                            <TableCell className={isOverdue ? 'text-red-600 font-medium' : ''}>
-                              {new Date(invoice.due_date).toLocaleDateString()}
-                              {isOverdue && <Clock className="h-3 w-3 inline ml-1" />}
-                            </TableCell>
-                            <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end space-x-2">
-                                <Button 
-                                  className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
-                                  onClick={() => alert(`Viewing invoice: ${invoice.invoice_number}`)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
-                                  onClick={() => handleSendReminder(invoice.id, invoice.client_name)}
-                                >
-                                  <Mail className="h-4 w-4" />
-                                </Button>
-                                {invoice.status === 'pending' && (
-                                  <Button 
-                                    className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-green-600 hover:text-green-700"
-                                    onClick={() => handleUpdateStatus(invoice.id, 'paid')}
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                <Button 
-                                  className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600 hover:text-red-700"
-                                  onClick={() => handleDeleteInvoice(invoice.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          {filteredInvoices.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">No invoices found</div>
+              <p className="text-gray-500">Create your first invoice to get started</p>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice #</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredInvoices.map((invoice) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                      <TableCell>{invoice.client_name}</TableCell>
+                      <TableCell className="font-medium">{formatCurrencyMUR(invoice.amount)}</TableCell>
+                      <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
+                            onClick={() => handleSendReminder(invoice.id, invoice.client_name)}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600"
+                            onClick={() => handleDeleteInvoice(invoice.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Status Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {['draft', 'sent', 'pending', 'paid', 'overdue'].map(status => {
-                const count = invoices.filter(i => i.status === status).length;
-                const percentage = invoices.length > 0 ? (count / invoices.length * 100).toFixed(1) : '0';
-                const amount = invoices.filter(i => i.status === status).reduce((sum, i) => sum + i.amount, 0);
-                
-                return (
-                  <div key={status} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="capitalize">{status}</span>
-                      <span className="font-medium">{count} ({percentage}%)</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${
-                          status === 'paid' ? 'bg-green-500' :
-                          status === 'pending' ? 'bg-yellow-500' :
-                          status === 'overdue' ? 'bg-red-500' :
-                          status === 'sent' ? 'bg-blue-500' : 'bg-gray-500'
-                        }`}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Total: {formatCurrencyMUR(amount)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Button 
-                className="w-full justify-start gap-2"
-                onClick={handleGenerateMonthlyReport}
-              >
-                <FileText className="h-4 w-4" />
-                Generate Monthly Report
-              </Button>
-              <Button 
-                className="w-full justify-start gap-2 border border-gray-300 bg-transparent hover:bg-gray-100"
-                onClick={handleSendBulkReminders}
-              >
-                <Mail className="h-4 w-4" />
-                Send Bulk Reminders
-              </Button>
-              <Button 
-                className="w-full justify-start gap-2 border border-gray-300 bg-transparent hover:bg-gray-100"
-                onClick={handleExportInvoices}
-              >
-                <Download className="h-4 w-4" />
-                Export All Invoices
-              </Button>
-              <Button 
-                className="w-full justify-start gap-2 border border-gray-300 bg-transparent hover:bg-gray-100"
-                onClick={() => {
-                  setStatusFilter('overdue');
-                  alert('Filtered to show overdue invoices');
-                }}
-              >
-                <Filter className="h-4 w-4" />
-                View Overdue Invoices
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };

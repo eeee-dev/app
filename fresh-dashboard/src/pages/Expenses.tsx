@@ -11,61 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { financialDashboardAPI } from '@/lib/supabase';
-import { formatCurrencyMUR, calculateVAT, calculateTotalWithVAT, DEFAULT_VAT_RATE, formatVATRate } from '@/lib/utils';
-
-interface Expense {
-  id: string;
-  department_id: string;
-  project_id?: string;
-  description: string;
-  amount: number;
-  vat_amount: number;
-  total_amount: number;
-  vat_rate?: number;
-  status: string;
-  category: string;
-  date: string;
-  created_at?: string;
-  updated_at?: string;
-  departments?: {
-    name: string;
-    budget: number;
-    spent: number;
-  };
-  projects?: {
-    name: string;
-    code: string;
-  };
-}
-
-interface Department {
-  id: string;
-  name: string;
-  budget: number;
-  spent: number;
-  manager?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  code: string;
-  department_id: string;
-  department_name: string;
-  description: string;
-  budget: number;
-  spent: number;
-  start_date: string;
-  end_date: string;
-  status: string;
-  manager: string;
-  team_size: number;
-  created_at?: string;
-  updated_at?: string;
-}
+import { expensesService, Expense } from '@/services/expenses';
+import { departmentsService, Department } from '@/services/departments';
+import { projectsService, Project } from '@/services/projects';
+import { formatCurrencyMUR, calculateVAT, calculateTotalWithVAT, DEFAULT_VAT_RATE } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface NewExpenseForm {
   department_id: string;
@@ -115,15 +65,16 @@ const Expenses: React.FC = () => {
     try {
       setLoading(true);
       const [expensesData, departmentsData, projectsData] = await Promise.all([
-        financialDashboardAPI.getExpenses(),
-        financialDashboardAPI.getDepartments(),
-        financialDashboardAPI.getProjects()
+        expensesService.getAll(),
+        departmentsService.getAll(),
+        projectsService.getAll()
       ]);
-      setExpenses(expensesData as Expense[]);
-      setDepartments(departmentsData as Department[]);
-      setProjects(projectsData as Project[]);
+      setExpenses(expensesData);
+      setDepartments(departmentsData);
+      setProjects(projectsData);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -180,8 +131,10 @@ const Expenses: React.FC = () => {
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Overdue</Badge>;
+      case 'approved':
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Approved</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rejected</Badge>;
       default:
         return <Badge className="border border-gray-300 bg-transparent">{status}</Badge>;
     }
@@ -204,59 +157,51 @@ const Expenses: React.FC = () => {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
-      await financialDashboardAPI.updateExpense(id, { status });
+      await expensesService.update(id, { status: status as 'pending' | 'approved' | 'rejected' | 'paid' });
       await loadData();
+      toast.success('Status updated successfully');
     } catch (error) {
       console.error('Error updating status:', error);
+      toast.error('Failed to update status');
     }
   };
 
   const handleDeleteExpense = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
       try {
-        // In a real implementation, this would call an API to delete
-        // For now, we'll just update locally
-        const updatedExpenses = expenses.filter(expense => expense.id !== id);
-        setExpenses(updatedExpenses);
-        console.log(`Expense ${id} deleted locally`);
+        await expensesService.delete(id);
+        await loadData();
+        toast.success('Expense deleted successfully');
       } catch (error) {
         console.error('Error deleting expense:', error);
-        alert('Error deleting expense. Please try again.');
+        toast.error('Failed to delete expense');
       }
     }
   };
 
   const handleCreateExpense = async () => {
     try {
-      // Validate required fields
       if (!newExpense.department_id || !newExpense.description || newExpense.amount <= 0) {
-        alert('Please fill in all required fields with valid values.');
+        toast.error('Please fill in all required fields with valid values.');
         return;
       }
 
-      // Create expense using API - only pass the parameters that the API expects
-      const createdExpense = await financialDashboardAPI.addExpense({
+      await expensesService.create({
+        id: `exp-${Date.now()}`,
         department_id: newExpense.department_id,
         project_id: newExpense.project_id || undefined,
         description: newExpense.description,
         amount: newExpense.amount,
+        vat_amount: newExpense.vat_amount,
+        total_amount: newExpense.total_amount,
         category: newExpense.category,
         date: newExpense.date,
-        status: newExpense.status,
+        status: newExpense.status as 'pending' | 'approved' | 'rejected' | 'paid',
         receipt_url: newExpense.receipt_url
       });
 
-      // Add to local state with calculated VAT and total
-      const expenseWithVAT: Expense = {
-        ...(createdExpense as Expense),
-        vat_amount: newExpense.vat_amount,
-        total_amount: newExpense.total_amount,
-        vat_rate: newExpense.vat_applied ? newExpense.vat_rate : 0
-      };
+      await loadData();
       
-      setExpenses([...expenses, expenseWithVAT]);
-      
-      // Reset form
       setNewExpense({
         department_id: '',
         project_id: '',
@@ -272,13 +217,11 @@ const Expenses: React.FC = () => {
         receipt_url: ''
       });
 
-      // Close dialog
       setIsCreateDialogOpen(false);
-      
-      alert('Expense created successfully!');
+      toast.success('Expense created successfully!');
     } catch (error) {
       console.error('Error creating expense:', error);
-      alert('Error creating expense. Please try again.');
+      toast.error('Error creating expense. Please try again.');
     }
   };
 
@@ -299,8 +242,7 @@ const Expenses: React.FC = () => {
 
   const handleExportExpenses = () => {
     try {
-      // Create CSV content
-      const headers = ['ID', 'Description', 'Department', 'Project', 'Amount', 'VAT Applied', 'VAT Rate', 'VAT Amount', 'Total', 'Date', 'Category', 'Status'];
+      const headers = ['ID', 'Description', 'Department', 'Project', 'Amount', 'VAT Amount', 'Total', 'Date', 'Category', 'Status'];
       const csvContent = [
         headers.join(','),
         ...filteredExpenses.map(expense => [
@@ -309,8 +251,6 @@ const Expenses: React.FC = () => {
           departments.find(d => d.id === expense.department_id)?.name || 'Unknown',
           expense.project_id ? projects.find(p => p.id === expense.project_id)?.name || 'Unknown Project' : 'Not assigned',
           expense.amount,
-          expense.vat_rate && expense.vat_rate > 0 ? 'Yes' : 'No',
-          expense.vat_rate ? `${expense.vat_rate}%` : '0%',
           expense.vat_amount,
           expense.total_amount,
           expense.date,
@@ -319,7 +259,6 @@ const Expenses: React.FC = () => {
         ].join(','))
       ].join('\n');
 
-      // Create blob and download
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -330,24 +269,33 @@ const Expenses: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       
-      alert('Expenses exported successfully!');
+      toast.success('Expenses exported successfully!');
     } catch (error) {
       console.error('Error exporting expenses:', error);
-      alert('Error exporting expenses. Please try again.');
+      toast.error('Error exporting expenses. Please try again.');
     }
   };
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.total_amount, 0);
   const totalAmountExcludingVAT = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const pendingExpenses = expenses.filter(e => e.status === 'pending').reduce((sum, expense) => sum + expense.total_amount, 0);
-  const overdueExpenses = expenses.filter(e => e.status === 'overdue').reduce((sum, expense) => sum + expense.total_amount, 0);
   const paidExpenses = expenses.filter(e => e.status === 'paid').reduce((sum, expense) => sum + expense.total_amount, 0);
   const totalVAT = expenses.reduce((sum, expense) => sum + expense.vat_amount, 0);
 
-  // Get projects filtered by selected department
   const filteredProjects = newExpense.department_id 
     ? projects.filter(project => project.department_id === newExpense.department_id)
     : [];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading expenses...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -359,7 +307,7 @@ const Expenses: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Button 
             className="gap-2 border border-gray-300 bg-transparent hover:bg-gray-100"
-            onClick={() => alert('Filter functionality would open filter panel')}
+            onClick={() => toast.info('Filter functionality would open filter panel')}
           >
             <Filter className="h-4 w-4" />
             Filter
@@ -391,7 +339,6 @@ const Expenses: React.FC = () => {
                       value={newExpense.department_id} 
                       onValueChange={(value) => {
                         handleInputChange('department_id', value);
-                        // Reset project when department changes
                         handleInputChange('project_id', '');
                       }}
                     >
@@ -404,7 +351,7 @@ const Expenses: React.FC = () => {
                             <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="" disabled>No departments available</SelectItem>
+                          <SelectItem value="none" disabled>No departments available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -420,7 +367,7 @@ const Expenses: React.FC = () => {
                         <SelectValue placeholder={newExpense.department_id ? "Select project" : "Select department first"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Not assigned to project</SelectItem>
+                        <SelectItem value="none">Not assigned to project</SelectItem>
                         {filteredProjects.map(project => (
                           <SelectItem key={project.id} value={project.id}>
                             {project.code} - {project.name}
@@ -445,9 +392,6 @@ const Expenses: React.FC = () => {
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Toggle VAT application for VAT-exempt suppliers or businesses
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -546,21 +490,11 @@ const Expenses: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
                         <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="overdue">Overdue</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="receipt_url">Receipt URL (Optional)</Label>
-                  <Input
-                    id="receipt_url"
-                    value={newExpense.receipt_url || ''}
-                    onChange={(e) => handleInputChange('receipt_url', e.target.value)}
-                    placeholder="https://example.com/receipt.pdf"
-                  />
                 </div>
 
                 <div className="bg-gray-50 p-4 rounded-md">
@@ -586,21 +520,6 @@ const Expenses: React.FC = () => {
                       <span className="font-bold text-lg">{formatCurrencyMUR(newExpense.total_amount)}</span>
                     </div>
                   )}
-                  <div className="mt-2 pt-2 border-t">
-                    <div className="flex items-center space-x-2">
-                      {newExpense.vat_applied ? (
-                        <>
-                          <Check className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-600">VAT is applied to this expense</span>
-                        </>
-                      ) : (
-                        <>
-                          <X className="h-4 w-4 text-red-600" />
-                          <span className="text-sm text-red-600">VAT is NOT applied to this expense (VAT exempt)</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -690,19 +609,6 @@ const Expenses: React.FC = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={projectFilter} onValueChange={setProjectFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Projects" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Projects</SelectItem>
-                    {projects.map(project => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.code} - {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="All Status" />
@@ -710,8 +616,8 @@ const Expenses: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -724,15 +630,9 @@ const Expenses: React.FC = () => {
               <TabsTrigger value="all">All Expenses</TabsTrigger>
               <TabsTrigger value="pending">Pending</TabsTrigger>
               <TabsTrigger value="paid">Paid</TabsTrigger>
-              <TabsTrigger value="overdue">Overdue</TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-6">
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-gray-500 mt-4">Loading expenses...</p>
-                </div>
-              ) : filteredExpenses.length === 0 ? (
+              {filteredExpenses.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">No expenses found</div>
                   <p className="text-gray-500">Try adjusting your filters or add a new expense</p>
@@ -742,14 +642,10 @@ const Expenses: React.FC = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>ID</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Department</TableHead>
-                        <TableHead>Project</TableHead>
                         <TableHead>Amount</TableHead>
-                        <TableHead>VAT Applied</TableHead>
-                        <TableHead>VAT Rate</TableHead>
-                        <TableHead>VAT Amount</TableHead>
+                        <TableHead>VAT</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Category</TableHead>
@@ -760,63 +656,28 @@ const Expenses: React.FC = () => {
                     <TableBody>
                       {filteredExpenses.map((expense) => (
                         <TableRow key={expense.id}>
-                          <TableCell className="font-medium">{expense.id}</TableCell>
                           <TableCell>{expense.description}</TableCell>
                           <TableCell>
-                            {expense.departments?.name || departments.find(d => d.id === expense.department_id)?.name || 'Unknown'}
-                          </TableCell>
-                          <TableCell>
-                            {expense.project_id ? (
-                              <div className="flex items-center space-x-1">
-                                <Briefcase className="h-3 w-3 text-gray-500" />
-                                <span>{projects.find(p => p.id === expense.project_id)?.name || 'Unknown Project'}</span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 text-sm">Not assigned</span>
-                            )}
+                            {departments.find(d => d.id === expense.department_id)?.name || 'Unknown'}
                           </TableCell>
                           <TableCell className="font-medium">{formatCurrencyMUR(expense.amount)}</TableCell>
-                          <TableCell>
-                            {expense.vat_rate && expense.vat_rate > 0 ? (
-                              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Yes</Badge>
-                            ) : (
-                              <Badge className="bg-red-100 text-red-800 hover:bg-red-100">No</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-gray-600">
-                            {expense.vat_rate ? `${expense.vat_rate}%` : '0%'}
-                          </TableCell>
-                          <TableCell className="text-purple-600 font-medium">{formatCurrencyMUR(expense.vat_amount)}</TableCell>
+                          <TableCell className="text-purple-600">{formatCurrencyMUR(expense.vat_amount)}</TableCell>
                           <TableCell className="font-bold">{formatCurrencyMUR(expense.total_amount)}</TableCell>
                           <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
                           <TableCell>{getCategoryBadge(expense.category)}</TableCell>
                           <TableCell>{getStatusBadge(expense.status)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
-                              <Button 
-                                className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
-                                onClick={() => alert(`Viewing expense: ${expense.id}`)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
                               {expense.status === 'pending' && (
-                                <>
-                                  <Button 
-                                    className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-green-600 hover:text-green-700"
-                                    onClick={() => handleUpdateStatus(expense.id, 'paid')}
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600 hover:text-red-700"
-                                    onClick={() => handleUpdateStatus(expense.id, 'overdue')}
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                </>
+                                <Button 
+                                  className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-green-600"
+                                  onClick={() => handleUpdateStatus(expense.id, 'paid')}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
                               )}
                               <Button 
-                                className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600 hover:text-red-700"
+                                className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600"
                                 onClick={() => handleDeleteExpense(expense.id)}
                               >
                                 <Trash2 className="h-4 w-4" />

@@ -9,28 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { financialDashboardAPI } from '@/lib/supabase';
+import { projectsService, Project } from '@/services/projects';
+import { departmentsService, Department } from '@/services/departments';
 import { formatCurrencyMUR } from '@/lib/utils';
-import { storage } from '@/lib/localStorage';
 import { toast } from 'sonner';
-
-interface Project {
-  id: string;
-  name: string;
-  code: string;
-  department_id: string;
-  department_name: string;
-  description: string;
-  budget: number;
-  spent: number;
-  start_date: string;
-  end_date: string;
-  status: string;
-  manager: string;
-  team_size: number;
-  created_at?: string;
-  updated_at?: string;
-}
 
 interface NewProjectForm {
   name: string;
@@ -45,120 +27,11 @@ interface NewProjectForm {
   team_size: number;
 }
 
-interface Department {
-  id: string;
-  name: string;
-  budget?: number;
-  spent?: number;
-  manager?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-const DEFAULT_PROJECTS: Project[] = [
-  {
-    id: 'proj-001',
-    name: 'Album Production',
-    code: 'ALB-2025',
-    department_id: 'musique',
-    department_name: 'ë • musique',
-    description: 'Production of new music album for international release',
-    budget: 150000,
-    spent: 95000,
-    start_date: '2025-01-15',
-    end_date: '2025-06-30',
-    status: 'active',
-    manager: 'Alexandre Dubois',
-    team_size: 8
-  },
-  {
-    id: 'proj-002',
-    name: 'Visual Identity Redesign',
-    code: 'VIR-2025',
-    department_id: 'musique',
-    department_name: 'ë • musique',
-    description: 'Complete visual identity redesign for corporate branding',
-    budget: 80000,
-    spent: 45000,
-    start_date: '2025-02-01',
-    end_date: '2025-05-31',
-    status: 'active',
-    manager: 'Sophie Martin',
-    team_size: 6
-  },
-  {
-    id: 'proj-003',
-    name: 'Studio Equipment Upgrade',
-    code: 'SEQ-2025',
-    department_id: 'boucan',
-    department_name: 'bōucan',
-    description: 'Upgrade studio recording equipment and acoustic treatment',
-    budget: 120000,
-    spent: 85000,
-    start_date: '2025-01-01',
-    end_date: '2025-03-31',
-    status: 'completed',
-    manager: 'Thomas Leroy',
-    team_size: 4
-  },
-  {
-    id: 'proj-004',
-    name: 'Talent Recruitment Drive',
-    code: 'TRD-2025',
-    department_id: 'talent',
-    department_name: 'talënt',
-    description: 'Recruitment campaign for new artists and performers',
-    budget: 60000,
-    spent: 35000,
-    start_date: '2025-03-01',
-    end_date: '2025-08-31',
-    status: 'active',
-    manager: 'Isabelle Chen',
-    team_size: 5
-  },
-  {
-    id: 'proj-005',
-    name: 'Retail Store Expansion',
-    code: 'RSE-2025',
-    department_id: 'moris',
-    department_name: 'mōris',
-    description: 'Expansion of retail store network in new regions',
-    budget: 200000,
-    spent: 125000,
-    start_date: '2025-01-01',
-    end_date: '2025-12-31',
-    status: 'active',
-    manager: 'David Wilson',
-    team_size: 12
-  },
-  {
-    id: 'proj-006',
-    name: 'Music Video Production',
-    code: 'MVP-2025',
-    department_id: 'musique',
-    department_name: 'ë • musique',
-    description: 'Production of high-quality music videos for top artists',
-    budget: 100000,
-    spent: 65000,
-    start_date: '2025-02-15',
-    end_date: '2025-07-31',
-    status: 'on-hold',
-    manager: 'Alexandre Dubois',
-    team_size: 7
-  }
-];
-
 const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
-  
-  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([
-    { id: 'musique', name: 'ë • musique' },
-    { id: 'boucan', name: 'bōucan' },
-    { id: 'talent', name: 'talënt' },
-    { id: 'moris', name: 'mōris' }
-  ]);
-  
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [newProject, setNewProject] = useState<NewProjectForm>({
     name: '',
     code: '',
@@ -174,46 +47,18 @@ const Projects: React.FC = () => {
 
   const loadData = useCallback(async () => {
     try {
-      // Try to load departments from localStorage or API
-      const storedDepartments = storage.getDepartments();
-      if (storedDepartments && storedDepartments.length > 0) {
-        setDepartments(storedDepartments.map((dept: Department) => ({
-          id: dept.id,
-          name: dept.name
-        })));
-      } else {
-        const departmentsData = await financialDashboardAPI.getDepartments();
-        if (departmentsData && departmentsData.length > 0) {
-          setDepartments(departmentsData.map((dept: Department) => ({
-            id: dept.id,
-            name: dept.name
-          })));
-        }
-      }
-      
-      // Try to load projects from localStorage first
-      const storedProjects = storage.getProjects();
-      if (storedProjects && storedProjects.length > 0) {
-        setProjects(storedProjects);
-        return;
-      }
-
-      // Try to load from API
-      const projectsData = await financialDashboardAPI.getProjects();
-      if (projectsData && projectsData.length > 0) {
-        setProjects(projectsData);
-        storage.saveProjects(projectsData);
-        return;
-      }
-
-      // Use default data if nothing else is available
-      setProjects(DEFAULT_PROJECTS);
-      storage.saveProjects(DEFAULT_PROJECTS);
+      setLoading(true);
+      const [projectsData, departmentsData] = await Promise.all([
+        projectsService.getAll(),
+        departmentsService.getAll()
+      ]);
+      setProjects(projectsData);
+      setDepartments(departmentsData);
     } catch (error) {
       console.error('Error loading data:', error);
-      // Use default data on error
-      setProjects(DEFAULT_PROJECTS);
-      storage.saveProjects(DEFAULT_PROJECTS);
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -221,61 +66,30 @@ const Projects: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Save to localStorage whenever projects change
-  useEffect(() => {
-    if (projects.length > 0) {
-      storage.saveProjects(projects);
-    }
-  }, [projects]);
-
   const handleCreateProject = async () => {
     try {
-      // Validate required fields
       if (!newProject.name || !newProject.code || !newProject.department_id) {
         toast.error('Please fill in Project Name, Project Code, and select a Department.');
         return;
       }
 
-      // Create project using API
-      const createdProject = await financialDashboardAPI.addProject({
+      await projectsService.create({
+        id: `proj-${Date.now()}`,
         name: newProject.name,
         code: newProject.code,
         department_id: newProject.department_id,
         budget: newProject.budget || 0,
-        description: newProject.description,
+        spent: 0,
+        description: newProject.description || undefined,
         start_date: newProject.start_date,
         end_date: newProject.end_date,
-        status: newProject.status,
-        manager: newProject.manager,
+        status: newProject.status as 'active' | 'completed' | 'on-hold' | 'cancelled',
+        manager: newProject.manager || undefined,
         team_size: newProject.team_size
       });
 
-      // Get department name
-      const department = departments.find(d => d.id === newProject.department_id);
+      await loadData();
       
-      // Create new project object for local state
-      const newProj: Project = {
-        id: createdProject?.id || Date.now().toString(),
-        name: newProject.name,
-        code: newProject.code,
-        department_id: newProject.department_id,
-        department_name: department?.name || 'Unknown Department',
-        description: newProject.description,
-        budget: newProject.budget || 0,
-        spent: 0,
-        start_date: newProject.start_date,
-        end_date: newProject.end_date,
-        status: newProject.status,
-        manager: newProject.manager,
-        team_size: newProject.team_size,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      // Add to local state (will trigger useEffect to save to localStorage)
-      setProjects([...projects, newProj]);
-      
-      // Reset form
       setNewProject({
         name: '',
         code: '',
@@ -289,9 +103,7 @@ const Projects: React.FC = () => {
         team_size: 0
       });
 
-      // Close dialog
       setIsCreateDialogOpen(false);
-      
       toast.success('Project created successfully!');
     } catch (error) {
       console.error('Error creating project:', error);
@@ -313,11 +125,12 @@ const Projects: React.FC = () => {
         headers.join(','),
         ...projects.map(proj => {
           const utilization = proj.budget > 0 ? ((proj.spent / proj.budget) * 100).toFixed(2) : '0';
+          const dept = departments.find(d => d.id === proj.department_id);
           return [
             proj.code,
             `"${proj.name.replace(/"/g, '""')}"`,
-            `"${proj.department_name.replace(/"/g, '""')}"`,
-            `"${proj.manager.replace(/"/g, '""')}"`,
+            `"${dept?.name || 'Unknown'}"`,
+            `"${proj.manager?.replace(/"/g, '""') || 'Not assigned'}"`,
             formatCurrencyMUR(proj.budget).replace('₨', '').trim(),
             formatCurrencyMUR(proj.spent).replace('₨', '').trim(),
             utilization,
@@ -346,16 +159,17 @@ const Projects: React.FC = () => {
     }
   };
 
-  const handleDeleteProject = (id: string) => {
+  const handleDeleteProject = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      const updatedProjects = projects.filter(proj => proj.id !== id);
-      setProjects(updatedProjects);
-      toast.success('Project deleted successfully!');
+      try {
+        await projectsService.delete(id);
+        await loadData();
+        toast.success('Project deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        toast.error('Failed to delete project');
+      }
     }
-  };
-
-  const handleEditProject = (project: Project) => {
-    toast.info(`Editing project: ${project.name}\n\nThis would open an edit form with pre-filled data.`);
   };
 
   const totalProjects = projects.length;
@@ -381,6 +195,17 @@ const Projects: React.FC = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -631,6 +456,7 @@ const Projects: React.FC = () => {
               const utilization = project.budget > 0 ? (project.spent / project.budget) * 100 : 0;
               const daysRemaining = getDaysRemaining(project.end_date);
               const isOverdue = daysRemaining < 0;
+              const dept = departments.find(d => d.id === project.department_id);
               
               return (
                 <Card key={project.id} className="hover:shadow-lg transition-shadow">
@@ -649,11 +475,13 @@ const Projects: React.FC = () => {
                                 {project.status}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600">{project.department_name} • {project.manager}</p>
+                            <p className="text-sm text-gray-600">{dept?.name || 'Unknown'} • {project.manager || 'No manager'}</p>
                           </div>
                         </div>
                         
-                        <p className="text-sm text-gray-700">{project.description}</p>
+                        {project.description && (
+                          <p className="text-sm text-gray-700">{project.description}</p>
+                        )}
                         
                         <div className="flex items-center space-x-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-1">
@@ -704,7 +532,7 @@ const Projects: React.FC = () => {
                           </Button>
                           <Button 
                             className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-                            onClick={() => handleEditProject(project)}
+                            onClick={() => toast.info(`Editing project: ${project.name}`)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -714,51 +542,6 @@ const Projects: React.FC = () => {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="active" className="mt-6">
-          <div className="space-y-6">
-            {projects.filter(p => p.status === 'active').map((project) => {
-              const utilization = project.budget > 0 ? (project.spent / project.budget) * 100 : 0;
-              const daysRemaining = getDaysRemaining(project.end_date);
-              
-              return (
-                <Card key={project.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                            <Briefcase className="h-5 w-5 text-green-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-lg">{project.name}</h3>
-                            <p className="text-sm text-gray-600">{project.department_name} • {project.manager}</p>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-700">{project.description}</p>
-                      </div>
-                      
-                      <div className="space-y-3 min-w-[200px]">
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Progress</span>
-                            <span className="font-medium">{utilization.toFixed(1)}%</span>
-                          </div>
-                          <Progress value={utilization} className="h-2" />
-                        </div>
-                        
-                        <div className="text-center">
-                          <div className="font-bold">{daysRemaining} days remaining</div>
-                          <div className="text-xs text-gray-600">Deadline: {project.end_date}</div>
                         </div>
                       </div>
                     </div>

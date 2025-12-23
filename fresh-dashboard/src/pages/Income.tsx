@@ -10,65 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { financialDashboardAPI } from '@/lib/supabase';
+import { incomeService, Income } from '@/services/income';
+import { departmentsService, Department } from '@/services/departments';
+import { projectsService, Project } from '@/services/projects';
 import { formatCurrencyMUR } from '@/lib/utils';
-import { ocrService } from '@/lib/ocrService';
 import { toast } from 'sonner';
-
-interface Income {
-  id: string;
-  invoice_number: string;
-  client_name: string;
-  client_email: string;
-  client_phone: string;
-  client_address: string;
-  department_id?: string;
-  project_id?: string;
-  amount: number;
-  date: string;
-  due_date: string;
-  status: string;
-  description: string;
-  created_at?: string;
-  updated_at?: string;
-  departments?: {
-    name: string;
-    budget: number;
-    spent: number;
-  };
-  projects?: {
-    name: string;
-    code: string;
-  };
-}
-
-interface Department {
-  id: string;
-  name: string;
-  budget: number;
-  spent: number;
-  manager?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  code: string;
-  department_id: string;
-  department_name: string;
-  description: string;
-  budget: number;
-  spent: number;
-  start_date: string;
-  end_date: string;
-  status: string;
-  manager: string;
-  team_size: number;
-  created_at?: string;
-  updated_at?: string;
-}
 
 interface NewIncomeForm {
   invoice_number: string;
@@ -83,7 +29,6 @@ interface NewIncomeForm {
   due_date: string;
   status: string;
   description: string;
-  brn?: string;
 }
 
 const IncomePage: React.FC = () => {
@@ -91,14 +36,9 @@ const IncomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [clientFilter, setClientFilter] = useState<string>('all');
-  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
-  const [projectFilter, setProjectFilter] = useState<string>('all');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isOCRDialogOpen, setIsOCRDialogOpen] = useState(false);
-  const [ocrProgress, setOCRProgress] = useState('');
   const [newIncome, setNewIncome] = useState<NewIncomeForm>({
     invoice_number: `INC-${Date.now().toString().slice(-6)}`,
     client_name: '',
@@ -111,8 +51,7 @@ const IncomePage: React.FC = () => {
     date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     status: 'pending',
-    description: '',
-    brn: ''
+    description: ''
   });
 
   useEffect(() => {
@@ -123,106 +62,18 @@ const IncomePage: React.FC = () => {
     try {
       setLoading(true);
       const [incomesData, departmentsData, projectsData] = await Promise.all([
-        financialDashboardAPI.getEnhancedIncomes(),
-        financialDashboardAPI.getDepartments(),
-        financialDashboardAPI.getProjects()
+        incomeService.getAll(),
+        departmentsService.getAll(),
+        projectsService.getAll()
       ]);
-      setIncomes(incomesData as Income[]);
-      setDepartments(departmentsData as Department[]);
-      setProjects(projectsData as Project[]);
+      setIncomes(incomesData);
+      setDepartments(departmentsData);
+      setProjects(projectsData);
     } catch (error) {
       console.error('Error loading data:', error);
-      const mockIncomes: Income[] = [
-        {
-          id: '1',
-          invoice_number: 'INV-2025-001',
-          client_name: 'Tech Solutions Inc.',
-          client_email: 'contact@techsolutions.com',
-          client_phone: '+230 123 4567',
-          client_address: '123 Tech Street, Port Louis',
-          department_id: 'musique',
-          project_id: 'proj-001',
-          amount: 12500,
-          date: '2025-01-15',
-          due_date: '2025-02-15',
-          status: 'received',
-          description: 'Consulting services for Q1 2025'
-        }
-      ];
-      setIncomes(mockIncomes);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    setIsOCRDialogOpen(true);
-
-    try {
-      if (files.length === 1) {
-        setOCRProgress('Processing invoice...');
-        const file = files[0];
-        const result = await ocrService.processInvoice(file);
-        
-        setNewIncome(prev => ({
-          ...prev,
-          client_name: result.clientName || prev.client_name,
-          client_email: result.email || prev.client_email,
-          client_phone: result.phone || prev.client_phone,
-          client_address: result.address || prev.client_address,
-          amount: result.amount || prev.amount,
-          date: result.date ? new Date(result.date).toISOString().split('T')[0] : prev.date,
-          invoice_number: result.invoiceNumber || prev.invoice_number,
-          description: result.description || prev.description,
-          brn: result.brn || prev.brn
-        }));
-
-        toast.success('Invoice data extracted successfully!');
-        setIsOCRDialogOpen(false);
-        setIsCreateDialogOpen(true);
-      } else {
-        setOCRProgress(`Processing ${files.length} invoices...`);
-        const results = await ocrService.processBulkInvoices(Array.from(files));
-        
-        let successCount = 0;
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
-          setOCRProgress(`Creating income record ${i + 1} of ${files.length}...`);
-          
-          if (result.clientName || result.amount) {
-            const newIncomeData: Income = {
-              id: `inc-${Date.now()}-${i}`,
-              invoice_number: result.invoiceNumber || `INC-${Date.now().toString().slice(-6)}-${i}`,
-              client_name: result.clientName || 'Unknown Client',
-              client_email: result.email || '',
-              client_phone: result.phone || '',
-              client_address: result.address || '',
-              amount: result.amount || 0,
-              date: result.date ? new Date(result.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-              due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              status: 'pending',
-              description: result.description || `Imported from ${files[i].name}`,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-            
-            setIncomes(prev => [...prev, newIncomeData]);
-            successCount++;
-          }
-        }
-        
-        toast.success(`Successfully processed ${successCount} of ${files.length} invoices!`);
-        setIsOCRDialogOpen(false);
-      }
-    } catch (error) {
-      console.error('OCR processing error:', error);
-      toast.error('Failed to process invoice(s). Please try again.');
-    } finally {
-      setOCRProgress('');
-      event.target.value = '';
     }
   };
 
@@ -230,14 +81,11 @@ const IncomePage: React.FC = () => {
     const matchesSearch = searchTerm === '' || 
       income.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       income.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      income.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (income.description && income.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || income.status === statusFilter;
-    const matchesClient = clientFilter === 'all' || income.client_name === clientFilter;
-    const matchesDepartment = departmentFilter === 'all' || income.department_id === departmentFilter;
-    const matchesProject = projectFilter === 'all' || income.project_id === projectFilter;
     
-    return matchesSearch && matchesStatus && matchesClient && matchesDepartment && matchesProject;
+    return matchesSearch && matchesStatus;
   });
 
   const getStatusBadge = (status: string) => {
@@ -248,6 +96,8 @@ const IncomePage: React.FC = () => {
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
       case 'overdue':
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Overdue</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Cancelled</Badge>;
       default:
         return <Badge className="border border-gray-300 bg-transparent">{status}</Badge>;
     }
@@ -255,13 +105,12 @@ const IncomePage: React.FC = () => {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
-      await financialDashboardAPI.updateEnhancedIncomeStatus(id, status);
+      await incomeService.update(id, { status: status as 'pending' | 'received' | 'overdue' | 'cancelled' });
       await loadData();
+      toast.success('Status updated successfully');
     } catch (error) {
       console.error('Error updating income status:', error);
-      setIncomes(prev => prev.map(income => 
-        income.id === id ? { ...income, status } : income
-      ));
+      toast.error('Failed to update status');
     }
   };
 
@@ -272,9 +121,14 @@ const IncomePage: React.FC = () => {
 
   const handleDeleteIncome = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this income record?')) {
-      const updatedIncomes = incomes.filter(income => income.id !== id);
-      setIncomes(updatedIncomes);
-      toast.success('Income record deleted successfully!');
+      try {
+        await incomeService.delete(id);
+        await loadData();
+        toast.success('Income record deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting income:', error);
+        toast.error('Failed to delete income');
+      }
     }
   };
 
@@ -284,44 +138,46 @@ const IncomePage: React.FC = () => {
       return;
     }
 
-    const newIncomeData: Income = {
-      id: `inc-${Date.now()}`,
-      invoice_number: newIncome.invoice_number,
-      client_name: newIncome.client_name,
-      client_email: newIncome.client_email,
-      client_phone: newIncome.client_phone,
-      client_address: newIncome.client_address,
-      department_id: newIncome.department_id || undefined,
-      project_id: newIncome.project_id || undefined,
-      amount: newIncome.amount,
-      date: newIncome.date,
-      due_date: newIncome.due_date,
-      status: newIncome.status,
-      description: newIncome.description,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    try {
+      await incomeService.create({
+        id: `inc-${Date.now()}`,
+        invoice_number: newIncome.invoice_number,
+        client_name: newIncome.client_name,
+        client_email: newIncome.client_email,
+        client_phone: newIncome.client_phone,
+        client_address: newIncome.client_address,
+        department_id: newIncome.department_id || undefined,
+        project_id: newIncome.project_id || undefined,
+        amount: newIncome.amount,
+        date: newIncome.date,
+        due_date: newIncome.due_date,
+        status: newIncome.status as 'pending' | 'received' | 'overdue' | 'cancelled',
+        description: newIncome.description
+      });
 
-    setIncomes([...incomes, newIncomeData]);
-    
-    setNewIncome({
-      invoice_number: `INC-${Date.now().toString().slice(-6)}`,
-      client_name: '',
-      client_email: '',
-      client_phone: '',
-      client_address: '',
-      department_id: '',
-      project_id: '',
-      amount: 0,
-      date: new Date().toISOString().split('T')[0],
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'pending',
-      description: '',
-      brn: ''
-    });
+      await loadData();
+      
+      setNewIncome({
+        invoice_number: `INC-${Date.now().toString().slice(-6)}`,
+        client_name: '',
+        client_email: '',
+        client_phone: '',
+        client_address: '',
+        department_id: '',
+        project_id: '',
+        amount: 0,
+        date: new Date().toISOString().split('T')[0],
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        status: 'pending',
+        description: ''
+      });
 
-    setIsCreateDialogOpen(false);
-    toast.success('Income record created successfully!');
+      setIsCreateDialogOpen(false);
+      toast.success('Income record created successfully!');
+    } catch (error) {
+      console.error('Error creating income:', error);
+      toast.error('Failed to create income');
+    }
   };
 
   const handleInputChange = (field: keyof NewIncomeForm, value: string | number) => {
@@ -338,8 +194,8 @@ const IncomePage: React.FC = () => {
       ...filteredIncomes.map(income => [
         income.invoice_number,
         `"${income.client_name}"`,
-        income.client_email,
-        income.client_phone,
+        income.client_email || '',
+        income.client_phone || '',
         income.amount,
         income.date,
         income.status
@@ -364,11 +220,16 @@ const IncomePage: React.FC = () => {
   const overdueIncomes = incomes.filter(i => i.status === 'overdue').reduce((sum, income) => sum + income.amount, 0);
   const receivedIncomes = incomes.filter(i => i.status === 'received').reduce((sum, income) => sum + income.amount, 0);
 
-  const uniqueClients = Array.from(new Set(incomes.map(inc => inc.client_name)));
-
-  const filteredProjects = newIncome.department_id 
-    ? projects.filter(project => project.department_id === newIncome.department_id)
-    : [];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading income records...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -378,22 +239,6 @@ const IncomePage: React.FC = () => {
           <p className="text-gray-600 mt-1">Track and manage all income sources</p>
         </div>
         <div className="flex items-center space-x-3">
-          <input
-            type="file"
-            id="invoice-upload"
-            accept="image/*,.pdf"
-            multiple
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-          <Button 
-            className="gap-2 bg-purple-600 hover:bg-purple-700"
-            onClick={() => document.getElementById('invoice-upload')?.click()}
-            type="button"
-          >
-            <Scan className="h-4 w-4" />
-            Scan Invoice(s)
-          </Button>
           <Button 
             className="gap-2 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
             onClick={handleExportIncomes}
@@ -471,24 +316,14 @@ const IncomePage: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="brn">BRN (Business Registration)</Label>
+                    <Label htmlFor="client_address">Client Address</Label>
                     <Input
-                      id="brn"
-                      value={newIncome.brn}
-                      onChange={(e) => handleInputChange('brn', e.target.value)}
-                      placeholder="C12345678"
+                      id="client_address"
+                      value={newIncome.client_address}
+                      onChange={(e) => handleInputChange('client_address', e.target.value)}
+                      placeholder="Enter client address"
                     />
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="client_address">Client Address</Label>
-                  <Input
-                    id="client_address"
-                    value={newIncome.client_address}
-                    onChange={(e) => handleInputChange('client_address', e.target.value)}
-                    placeholder="Enter client address"
-                  />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -549,19 +384,6 @@ const IncomePage: React.FC = () => {
           </Dialog>
         </div>
       </div>
-
-      <Dialog open={isOCRDialogOpen} onOpenChange={setIsOCRDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Processing Invoice(s)</DialogTitle>
-          </DialogHeader>
-          <div className="py-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">{ocrProgress}</p>
-            <p className="text-sm text-gray-500 mt-2">Please wait while we extract data from your invoice(s)...</p>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
@@ -639,12 +461,7 @@ const IncomePage: React.FC = () => {
               <TabsTrigger value="received">Received</TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-6">
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-gray-500 mt-4">Loading income records...</p>
-                </div>
-              ) : filteredIncomes.length === 0 ? (
+              {filteredIncomes.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">No income records found</div>
                   <p className="text-gray-500">Try adjusting your filters or add a new income record</p>
@@ -676,26 +493,26 @@ const IncomePage: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-col">
-                              {income.client_phone && (
-                                <div className="flex items-center space-x-1">
-                                  <Phone className="h-3 w-3 text-gray-500" />
-                                  <span className="text-sm">{income.client_phone}</span>
-                                </div>
-                              )}
-                            </div>
+                            {income.client_phone && (
+                              <div className="flex items-center space-x-1">
+                                <Phone className="h-3 w-3 text-gray-500" />
+                                <span className="text-sm">{income.client_phone}</span>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="font-medium">{formatCurrencyMUR(income.amount)}</TableCell>
                           <TableCell>{new Date(income.date).toLocaleDateString()}</TableCell>
                           <TableCell>{getStatusBadge(income.status)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
-                              <Button 
-                                className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-                                onClick={() => handleSendReminder(income.id, income.client_name, income.client_email)}
-                              >
-                                <MailIcon className="h-4 w-4" />
-                              </Button>
+                              {income.client_email && (
+                                <Button 
+                                  className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
+                                  onClick={() => handleSendReminder(income.id, income.client_name, income.client_email || '')}
+                                >
+                                  <MailIcon className="h-4 w-4" />
+                                </Button>
+                              )}
                               {income.status === 'pending' && (
                                 <Button 
                                   className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-green-600"

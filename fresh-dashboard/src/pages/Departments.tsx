@@ -9,26 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { financialDashboardAPI } from '@/lib/supabase';
+import { departmentsService, Department } from '@/services/departments';
 import { formatCurrencyMUR } from '@/lib/utils';
-import { storage } from '@/lib/localStorage';
 import { toast } from 'sonner';
-
-interface Department {
-  id: string;
-  name: string;
-  budget: number;
-  spent: number;
-  manager?: string;
-  description?: string;
-  status: string;
-  employees: number;
-  projects: number;
-  code: string;
-  icon: string;
-  created_at?: string;
-  updated_at?: string;
-}
 
 interface NewDepartmentForm {
   name: string;
@@ -41,60 +24,10 @@ interface NewDepartmentForm {
   projects: number;
 }
 
-const DEFAULT_DEPARTMENTS: Department[] = [
-  {
-    id: 'musique',
-    name: 'ë • musique',
-    code: 'MUS',
-    manager: 'Alexandre Dubois',
-    employees: 24,
-    budget: 50000,
-    spent: 42000,
-    projects: 8,
-    status: 'active',
-    icon: '/assets/department-music-icon_variant_1_variant_3.png'
-  },
-  {
-    id: 'boucan',
-    name: 'bōucan',
-    code: 'BOU',
-    manager: 'Thomas Leroy',
-    employees: 32,
-    budget: 120000,
-    spent: 105000,
-    projects: 6,
-    status: 'active',
-    icon: '/assets/department-studio-icon_variant_1_variant_3.png'
-  },
-  {
-    id: 'talent',
-    name: 'talënt',
-    code: 'TAL',
-    manager: 'Isabelle Chen',
-    employees: 15,
-    budget: 45000,
-    spent: 32000,
-    projects: 10,
-    status: 'active',
-    icon: '/assets/department-talent-icon_variant_1_variant_3.png'
-  },
-  {
-    id: 'moris',
-    name: 'mōris',
-    code: 'MOR',
-    manager: 'David Wilson',
-    employees: 8,
-    budget: 30000,
-    spent: 28000,
-    projects: 5,
-    status: 'active',
-    icon: '/assets/department-store-icon_variant_1_variant_3.png'
-  }
-];
-
 const Departments: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [newDepartment, setNewDepartment] = useState<NewDepartmentForm>({
     name: '',
     code: '',
@@ -108,88 +41,26 @@ const Departments: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const getDepartmentIcon = useCallback((name: string) => {
-    const icons: Record<string, string> = {
-      'ë • musique': '/assets/department-music-icon_variant_1_variant_4.png',
-      'musiquë': '/assets/department-music-icon_variant_1_variant_4_variant_1.png',
-      'bōucan': '/assets/department-studio-icon_variant_1_variant_4.png',
-      'talënt': '/assets/department-talent-icon_variant_1_variant_4.png',
-      'mōris': '/assets/department-store-icon_variant_1_variant_4.png'
-    };
-    
-    const lowerName = name.toLowerCase();
-    for (const [key, value] of Object.entries(icons)) {
-      if (lowerName.includes(key.toLowerCase().replace(/ë|•/g, '').replace(/ō/g, 'o'))) {
-        return value;
-      }
-    }
-    
-    // Default icon based on department type
-    if (lowerName.includes('music') || lowerName.includes('audio')) return '/assets/department-music-icon_variant_1_variant_5.png';
-    if (lowerName.includes('visual') || lowerName.includes('design')) return '/assets/department-visual-icon_variant_1_variant_5.png';
-    if (lowerName.includes('studio') || lowerName.includes('production')) return '/assets/department-studio-icon_variant_1_variant_5.png';
-    if (lowerName.includes('talent') || lowerName.includes('hr')) return '/assets/department-talent-icon_variant_1_variant_5.png';
-    if (lowerName.includes('store') || lowerName.includes('retail')) return '/assets/department-store-icon_variant_1_variant_5.png';
-    
-    return '/images/photo1765933878.jpg';
-  }, []);
-
   const loadData = useCallback(async () => {
     try {
-      // Try to load from localStorage first
-      const storedDepartments = storage.getDepartments();
-      if (storedDepartments && storedDepartments.length > 0) {
-        setDepartments(storedDepartments);
-        return;
-      }
-
-      // Try to load from API
-      const departmentsData = await financialDashboardAPI.getDepartments();
-      if (departmentsData && departmentsData.length > 0) {
-        const transformedData = departmentsData.map((dept: Department) => ({
-          id: dept.id,
-          name: dept.name,
-          code: dept.code || dept.name.substring(0, 3).toUpperCase(),
-          manager: dept.manager || 'Not assigned',
-          employees: dept.employees || 0,
-          budget: dept.budget || 0,
-          spent: dept.spent || 0,
-          projects: dept.projects || 0,
-          status: 'active',
-          icon: getDepartmentIcon(dept.name),
-          description: dept.description || ''
-        }));
-        setDepartments(transformedData);
-        storage.saveDepartments(transformedData);
-        return;
-      }
-
-      // Use default data if nothing else is available
-      setDepartments(DEFAULT_DEPARTMENTS);
-      storage.saveDepartments(DEFAULT_DEPARTMENTS);
+      setLoading(true);
+      const data = await departmentsService.getAll();
+      setDepartments(data);
     } catch (error) {
       console.error('Error loading departments:', error);
-      // Use default data on error
-      setDepartments(DEFAULT_DEPARTMENTS);
-      storage.saveDepartments(DEFAULT_DEPARTMENTS);
+      toast.error('Failed to load departments');
+    } finally {
+      setLoading(false);
     }
-  }, [getDepartmentIcon]);
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Save to localStorage whenever departments change
-  useEffect(() => {
-    if (departments.length > 0) {
-      storage.saveDepartments(departments);
-    }
-  }, [departments]);
-
   const handleCreateDepartment = async () => {
     setErrorMessage('');
     
-    // Validate required fields
     if (!newDepartment.name.trim()) {
       setErrorMessage('Please enter a department name.');
       return;
@@ -205,7 +76,6 @@ const Departments: React.FC = () => {
       return;
     }
 
-    // Check if code already exists
     if (departments.some(dept => dept.code === newDepartment.code.toUpperCase())) {
       setErrorMessage('Department code already exists. Please use a different code.');
       return;
@@ -214,36 +84,22 @@ const Departments: React.FC = () => {
     setIsCreating(true);
     
     try {
-      // Create department using API - only send required fields
-      const departmentData = {
-        name: newDepartment.name.trim(),
-        budget: newDepartment.budget || 0,
-        manager: newDepartment.manager.trim() || undefined
-      };
-
-      const createdDepartment = await financialDashboardAPI.addDepartment(departmentData);
-
-      // Create new department object for local state
-      const newDept: Department = {
-        id: createdDepartment?.id || Date.now().toString(),
+      const newDept: Omit<Department, 'created_at' | 'updated_at'> = {
+        id: newDepartment.code.toLowerCase(),
         name: newDepartment.name.trim(),
         code: newDepartment.code.toUpperCase().trim(),
-        manager: newDepartment.manager.trim(),
+        manager: newDepartment.manager.trim() || undefined,
         employees: newDepartment.employees,
         budget: newDepartment.budget || 0,
         spent: 0,
         projects: newDepartment.projects,
-        status: newDepartment.status,
-        icon: getDepartmentIcon(newDepartment.name),
-        description: newDepartment.description.trim(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        status: newDepartment.status as 'active' | 'inactive' | 'archived',
+        description: newDepartment.description.trim() || undefined
       };
 
-      // Add to local state (will trigger useEffect to save to localStorage)
-      setDepartments([...departments, newDept]);
+      await departmentsService.create(newDept);
+      await loadData();
       
-      // Reset form
       setNewDepartment({
         name: '',
         code: '',
@@ -255,14 +111,13 @@ const Departments: React.FC = () => {
         projects: 0
       });
 
-      // Close dialog
       setIsCreateDialogOpen(false);
-      
       toast.success('Department created successfully!');
     } catch (error: unknown) {
       console.error('Error creating department:', error);
       const errorMessage = error instanceof Error ? error.message : 'Please try again.';
       setErrorMessage(`Error creating department: ${errorMessage}`);
+      toast.error('Failed to create department');
     } finally {
       setIsCreating(false);
     }
@@ -274,7 +129,6 @@ const Departments: React.FC = () => {
       [field]: value
     }));
     
-    // Clear error message when user starts typing
     if (errorMessage) {
       setErrorMessage('');
     }
@@ -318,11 +172,16 @@ const Departments: React.FC = () => {
     }
   };
 
-  const handleDeleteDepartment = (id: string) => {
+  const handleDeleteDepartment = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this department? This action cannot be undone.')) {
-      const updatedDepartments = departments.filter(dept => dept.id !== id);
-      setDepartments(updatedDepartments);
-      toast.success('Department deleted successfully!');
+      try {
+        await departmentsService.delete(id);
+        await loadData();
+        toast.success('Department deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting department:', error);
+        toast.error('Failed to delete department');
+      }
     }
   };
 
@@ -331,6 +190,17 @@ const Departments: React.FC = () => {
   const totalBudget = departments.reduce((sum, dept) => sum + dept.budget, 0);
   const totalSpent = departments.reduce((sum, dept) => sum + dept.spent, 0);
   const totalProjects = departments.reduce((sum, dept) => sum + dept.projects, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading departments...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -390,7 +260,7 @@ const Departments: React.FC = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="budget">Annual Budget (MUR) - Optional</Label>
+                    <Label htmlFor="budget">Annual Budget (MUR)</Label>
                     <Input
                       id="budget"
                       type="number"
@@ -401,10 +271,9 @@ const Departments: React.FC = () => {
                       step="1000"
                       disabled={isCreating}
                     />
-                    <p className="text-xs text-gray-500">Leave as 0 if no budget allocated</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="manager">Department Manager - Optional</Label>
+                    <Label htmlFor="manager">Department Manager</Label>
                     <Input
                       id="manager"
                       value={newDepartment.manager}
@@ -417,7 +286,7 @@ const Departments: React.FC = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="employees">Number of Employees - Optional</Label>
+                    <Label htmlFor="employees">Number of Employees</Label>
                     <Input
                       id="employees"
                       type="number"
@@ -429,7 +298,7 @@ const Departments: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="projects">Active Projects - Optional</Label>
+                    <Label htmlFor="projects">Active Projects</Label>
                     <Input
                       id="projects"
                       type="number"
@@ -586,18 +455,14 @@ const Departments: React.FC = () => {
                       <div key={dept.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                         <div className="flex items-center space-x-4">
                           <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                            <img 
-                              src={dept.icon} 
-                              alt={dept.name} 
-                              className="w-8 h-8 object-contain"
-                            />
+                            <Users className="h-6 w-6 text-gray-600" />
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
                               <h3 className="font-semibold">{dept.name}</h3>
                               <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">{dept.code}</span>
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">{dept.manager}</p>
+                            <p className="text-sm text-gray-600 mt-1">{dept.manager || 'No manager assigned'}</p>
                             <div className="flex items-center space-x-4 mt-2">
                               <span className="text-sm text-gray-500">{dept.employees} employees</span>
                               <span className="text-sm text-gray-500">{dept.projects} projects</span>
@@ -668,18 +533,6 @@ const Departments: React.FC = () => {
                   >
                     Manage Team Members
                   </Button>
-                  <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-                    onClick={() => toast.info('Generating department report')}
-                  >
-                    Generate Department Report
-                  </Button>
-                  <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-                    onClick={() => toast.info('Setting performance goals')}
-                  >
-                    Set Performance Goals
-                  </Button>
                 </div>
 
                 <div className="mt-8 pt-6 border-t">
@@ -699,12 +552,6 @@ const Departments: React.FC = () => {
                       <span className="text-sm">Over Budget</span>
                       <span className="font-medium text-red-600">
                         {departments.filter(d => d.budget > 0 && (d.spent / d.budget) > 1).length}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">High Performance</span>
-                      <span className="font-medium">
-                        {departments.filter(d => d.projects > 5 && d.employees > 10).length}
                       </span>
                     </div>
                   </div>
