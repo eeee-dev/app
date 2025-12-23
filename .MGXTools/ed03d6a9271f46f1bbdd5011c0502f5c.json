@@ -65,7 +65,7 @@
                 "3"
             ],
             "backendDOMNodeId": 2,
-            "frameId": "309568924340B9C976AF30472703B621"
+            "frameId": "6F0B09461893DE1488E121C77293E4CE"
         },
         {
             "nodeId": "3",
@@ -89,12 +89,12 @@
             },
             "parentId": "2",
             "childIds": [
-                "19"
+                "20"
             ],
             "backendDOMNodeId": 3
         },
         {
-            "nodeId": "19",
+            "nodeId": "20",
             "ignored": true,
             "ignoredReasons": [
                 {
@@ -115,12 +115,12 @@
             },
             "parentId": "3",
             "childIds": [
-                "20"
+                "21"
             ],
-            "backendDOMNodeId": 19
+            "backendDOMNodeId": 20
         },
         {
-            "nodeId": "20",
+            "nodeId": "21",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -145,15 +145,15 @@
                 ]
             },
             "properties": [],
-            "parentId": "19",
+            "parentId": "20",
             "childIds": [
-                "21",
-                "22"
+                "22",
+                "23"
             ],
-            "backendDOMNodeId": 20
+            "backendDOMNodeId": 21
         },
         {
-            "nodeId": "21",
+            "nodeId": "22",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -220,34 +220,8 @@
                     }
                 }
             ],
-            "parentId": "20",
+            "parentId": "21",
             "childIds": [],
-            "backendDOMNodeId": 21
-        },
-        {
-            "nodeId": "22",
-            "ignored": true,
-            "ignoredReasons": [
-                {
-                    "name": "uninteresting",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                }
-            ],
-            "role": {
-                "type": "role",
-                "value": "none"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 0
-            },
-            "parentId": "20",
-            "childIds": [
-                "23"
-            ],
             "backendDOMNodeId": 22
         },
         {
@@ -270,11 +244,9 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "22",
+            "parentId": "21",
             "childIds": [
-                "24",
-                "26",
-                "49"
+                "24"
             ],
             "backendDOMNodeId": 23
         },
@@ -300,12 +272,40 @@
             },
             "parentId": "23",
             "childIds": [
-                "25"
+                "25",
+                "26",
+                "49"
             ],
             "backendDOMNodeId": 24
         },
         {
             "nodeId": "25",
+            "ignored": true,
+            "ignoredReasons": [
+                {
+                    "name": "uninteresting",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                }
+            ],
+            "role": {
+                "type": "role",
+                "value": "none"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 0
+            },
+            "parentId": "24",
+            "childIds": [
+                "4"
+            ],
+            "backendDOMNodeId": 25
+        },
+        {
+            "nodeId": "4",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -355,9 +355,9 @@
                     }
                 }
             ],
-            "parentId": "24",
+            "parentId": "25",
             "childIds": [],
-            "backendDOMNodeId": 25
+            "backendDOMNodeId": 4
         },
         {
             "nodeId": "26",
@@ -379,7 +379,7 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "23",
+            "parentId": "24",
             "childIds": [
                 "27",
                 "30"
@@ -582,7 +582,7 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "23",
+            "parentId": "24",
             "childIds": [
                 "50"
             ],
