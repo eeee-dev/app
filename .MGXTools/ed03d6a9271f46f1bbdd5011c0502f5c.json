@@ -1,7 +1,7 @@
 {
     "accessibility_tree": [
         {
-            "nodeId": "113",
+            "nodeId": "2",
             "ignored": false,
             "role": {
                 "type": "internalRole",
@@ -57,18 +57,18 @@
                     "name": "url",
                     "value": {
                         "type": "string",
-                        "value": "https://office.eeee.mu/signup"
+                        "value": "https://office.eeee.mu/login"
                     }
                 }
             ],
             "childIds": [
-                "115"
+                "10"
             ],
-            "backendDOMNodeId": 113,
-            "frameId": "F67EE02AAE7D3A6D4FAD75053C99A402"
+            "backendDOMNodeId": 2,
+            "frameId": "1D14546A43E06ACC06BB9157ACADC1FE"
         },
         {
-            "nodeId": "115",
+            "nodeId": "10",
             "ignored": true,
             "ignoredReasons": [
                 {
@@ -87,14 +87,14 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "113",
+            "parentId": "2",
             "childIds": [
-                "131"
+                "26"
             ],
-            "backendDOMNodeId": 115
+            "backendDOMNodeId": 10
         },
         {
-            "nodeId": "131",
+            "nodeId": "26",
             "ignored": true,
             "ignoredReasons": [
                 {
@@ -113,14 +113,14 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "115",
+            "parentId": "10",
             "childIds": [
-                "132"
+                "27"
             ],
-            "backendDOMNodeId": 131
+            "backendDOMNodeId": 26
         },
         {
-            "nodeId": "132",
+            "nodeId": "27",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -145,15 +145,15 @@
                 ]
             },
             "properties": [],
-            "parentId": "131",
+            "parentId": "26",
             "childIds": [
-                "133",
-                "209"
+                "28",
+                "29"
             ],
-            "backendDOMNodeId": 132
+            "backendDOMNodeId": 27
         },
         {
-            "nodeId": "133",
+            "nodeId": "28",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -220,12 +220,12 @@
                     }
                 }
             ],
-            "parentId": "132",
+            "parentId": "27",
             "childIds": [],
-            "backendDOMNodeId": 133
+            "backendDOMNodeId": 28
         },
         {
-            "nodeId": "209",
+            "nodeId": "29",
             "ignored": true,
             "ignoredReasons": [
                 {
@@ -244,14 +244,14 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "132",
+            "parentId": "27",
             "childIds": [
-                "204"
+                "3"
             ],
-            "backendDOMNodeId": 209
+            "backendDOMNodeId": 29
         },
         {
-            "nodeId": "204",
+            "nodeId": "3",
             "ignored": true,
             "ignoredReasons": [
                 {
@@ -270,15 +270,16 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "209",
+            "parentId": "29",
             "childIds": [
-                "202",
-                "203"
+                "30",
+                "4",
+                "7"
             ],
-            "backendDOMNodeId": 204
+            "backendDOMNodeId": 3
         },
         {
-            "nodeId": "202",
+            "nodeId": "30",
             "ignored": true,
             "ignoredReasons": [
                 {
@@ -297,15 +298,123 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "204",
+            "parentId": "3",
             "childIds": [
-                "172",
-                "173"
+                "8"
             ],
-            "backendDOMNodeId": 202
+            "backendDOMNodeId": 30
         },
         {
-            "nodeId": "172",
+            "nodeId": "8",
+            "ignored": false,
+            "role": {
+                "type": "role",
+                "value": "image"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 99
+            },
+            "name": {
+                "type": "computedString",
+                "value": "ë Logo",
+                "sources": [
+                    {
+                        "type": "relatedElement",
+                        "attribute": "aria-labelledby"
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "aria-label"
+                    },
+                    {
+                        "type": "attribute",
+                        "value": {
+                            "type": "computedString",
+                            "value": "ë Logo"
+                        },
+                        "attribute": "alt",
+                        "attributeValue": {
+                            "type": "string",
+                            "value": "ë Logo"
+                        }
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "title",
+                        "superseded": true
+                    }
+                ]
+            },
+            "properties": [
+                {
+                    "name": "url",
+                    "value": {
+                        "type": "string",
+                        "value": "https://office.eeee.mu/assets/e_logo.png"
+                    }
+                }
+            ],
+            "parentId": "30",
+            "childIds": [],
+            "backendDOMNodeId": 8
+        },
+        {
+            "nodeId": "4",
+            "ignored": true,
+            "ignoredReasons": [
+                {
+                    "name": "uninteresting",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                }
+            ],
+            "role": {
+                "type": "role",
+                "value": "none"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 0
+            },
+            "parentId": "3",
+            "childIds": [
+                "31",
+                "34"
+            ],
+            "backendDOMNodeId": 4
+        },
+        {
+            "nodeId": "31",
+            "ignored": true,
+            "ignoredReasons": [
+                {
+                    "name": "uninteresting",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                }
+            ],
+            "role": {
+                "type": "role",
+                "value": "none"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 0
+            },
+            "parentId": "4",
+            "childIds": [
+                "32",
+                "33"
+            ],
+            "backendDOMNodeId": 31
+        },
+        {
+            "nodeId": "32",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -317,7 +426,7 @@
             },
             "name": {
                 "type": "computedString",
-                "value": "CREATE ACCOUNT",
+                "value": "SIGN IN",
                 "sources": [
                     {
                         "type": "relatedElement",
@@ -331,7 +440,7 @@
                         "type": "contents",
                         "value": {
                             "type": "computedString",
-                            "value": "CREATE ACCOUNT"
+                            "value": "SIGN IN"
                         }
                     },
                     {
@@ -350,14 +459,14 @@
                     }
                 }
             ],
-            "parentId": "202",
+            "parentId": "31",
             "childIds": [
-                "212"
+                "51"
             ],
-            "backendDOMNodeId": 172
+            "backendDOMNodeId": 32
         },
         {
-            "nodeId": "173",
+            "nodeId": "33",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -382,14 +491,40 @@
                 ]
             },
             "properties": [],
-            "parentId": "202",
+            "parentId": "31",
             "childIds": [
-                "213"
+                "52"
             ],
-            "backendDOMNodeId": 173
+            "backendDOMNodeId": 33
         },
         {
-            "nodeId": "203",
+            "nodeId": "34",
+            "ignored": true,
+            "ignoredReasons": [
+                {
+                    "name": "uninteresting",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                }
+            ],
+            "role": {
+                "type": "role",
+                "value": "none"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 0
+            },
+            "parentId": "4",
+            "childIds": [
+                "9"
+            ],
+            "backendDOMNodeId": 34
+        },
+        {
+            "nodeId": "9",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -418,77 +553,17 @@
                 ]
             },
             "properties": [],
-            "parentId": "204",
+            "parentId": "34",
             "childIds": [
-                "200",
-                "201"
+                "35",
+                "5",
+                "46",
+                "47"
             ],
-            "backendDOMNodeId": 203
+            "backendDOMNodeId": 9
         },
         {
-            "nodeId": "212",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "StaticText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 158
-            },
-            "name": {
-                "type": "computedString",
-                "value": "CREATE ACCOUNT",
-                "sources": [
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": "CREATE ACCOUNT"
-                        }
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "172",
-            "childIds": [
-                "-1000000036"
-            ],
-            "backendDOMNodeId": 212
-        },
-        {
-            "nodeId": "213",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "StaticText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 158
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Sign up to access your financial dashboard",
-                "sources": [
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Sign up to access your financial dashboard"
-                        }
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "173",
-            "childIds": [
-                "-1000000037"
-            ],
-            "backendDOMNodeId": 213
-        },
-        {
-            "nodeId": "200",
+            "nodeId": "7",
             "ignored": true,
             "ignoredReasons": [
                 {
@@ -507,812 +582,14 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "203",
+            "parentId": "3",
             "childIds": [
-                "193",
-                "194",
-                "195",
-                "196"
+                "50"
             ],
-            "backendDOMNodeId": 200
+            "backendDOMNodeId": 7
         },
         {
-            "nodeId": "193",
-            "ignored": true,
-            "ignoredReasons": [
-                {
-                    "name": "uninteresting",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                }
-            ],
-            "role": {
-                "type": "role",
-                "value": "none"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 0
-            },
-            "parentId": "200",
-            "childIds": [
-                "174",
-                "175"
-            ],
-            "backendDOMNodeId": 193
-        },
-        {
-            "nodeId": "174",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "LabelText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 104
-            },
-            "name": {
-                "type": "computedString",
-                "value": "",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title"
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "193",
-            "childIds": [
-                "214"
-            ],
-            "backendDOMNodeId": 174
-        },
-        {
-            "nodeId": "175",
-            "ignored": false,
-            "role": {
-                "type": "role",
-                "value": "textbox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 170
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Full Name",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    },
-                    {
-                        "type": "relatedElement",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Full Name"
-                        },
-                        "nativeSource": "labelfor",
-                        "nativeSourceValue": {
-                            "type": "nodeList",
-                            "relatedNodes": [
-                                {
-                                    "backendDOMNodeId": 174,
-                                    "text": "Full Name"
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title",
-                        "superseded": true
-                    },
-                    {
-                        "type": "placeholder",
-                        "value": {
-                            "type": "computedString",
-                            "value": "John Doe"
-                        },
-                        "attribute": "placeholder",
-                        "attributeValue": {
-                            "type": "string",
-                            "value": "John Doe"
-                        },
-                        "superseded": true
-                    },
-                    {
-                        "type": "placeholder",
-                        "attribute": "aria-placeholder",
-                        "superseded": true
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title",
-                        "superseded": true
-                    }
-                ]
-            },
-            "properties": [
-                {
-                    "name": "invalid",
-                    "value": {
-                        "type": "token",
-                        "value": "false"
-                    }
-                },
-                {
-                    "name": "focusable",
-                    "value": {
-                        "type": "booleanOrUndefined",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "editable",
-                    "value": {
-                        "type": "token",
-                        "value": "plaintext"
-                    }
-                },
-                {
-                    "name": "settable",
-                    "value": {
-                        "type": "booleanOrUndefined",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "multiline",
-                    "value": {
-                        "type": "boolean",
-                        "value": false
-                    }
-                },
-                {
-                    "name": "readonly",
-                    "value": {
-                        "type": "boolean",
-                        "value": false
-                    }
-                },
-                {
-                    "name": "required",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "labelledby",
-                    "value": {
-                        "type": "nodeList",
-                        "relatedNodes": [
-                            {
-                                "backendDOMNodeId": 174,
-                                "text": "Full Name"
-                            }
-                        ]
-                    }
-                }
-            ],
-            "parentId": "193",
-            "childIds": [
-                "211",
-                "210"
-            ],
-            "backendDOMNodeId": 175
-        },
-        {
-            "nodeId": "194",
-            "ignored": true,
-            "ignoredReasons": [
-                {
-                    "name": "uninteresting",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                }
-            ],
-            "role": {
-                "type": "role",
-                "value": "none"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 0
-            },
-            "parentId": "200",
-            "childIds": [
-                "178",
-                "179"
-            ],
-            "backendDOMNodeId": 194
-        },
-        {
-            "nodeId": "178",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "LabelText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 104
-            },
-            "name": {
-                "type": "computedString",
-                "value": "",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title"
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "194",
-            "childIds": [
-                "216"
-            ],
-            "backendDOMNodeId": 178
-        },
-        {
-            "nodeId": "179",
-            "ignored": false,
-            "role": {
-                "type": "role",
-                "value": "textbox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 170
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Email",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    },
-                    {
-                        "type": "relatedElement",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Email"
-                        },
-                        "nativeSource": "labelfor",
-                        "nativeSourceValue": {
-                            "type": "nodeList",
-                            "relatedNodes": [
-                                {
-                                    "backendDOMNodeId": 178,
-                                    "text": "Email"
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title",
-                        "superseded": true
-                    },
-                    {
-                        "type": "placeholder",
-                        "value": {
-                            "type": "computedString",
-                            "value": "name@company.com"
-                        },
-                        "attribute": "placeholder",
-                        "attributeValue": {
-                            "type": "string",
-                            "value": "name@company.com"
-                        },
-                        "superseded": true
-                    },
-                    {
-                        "type": "placeholder",
-                        "attribute": "aria-placeholder",
-                        "superseded": true
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title",
-                        "superseded": true
-                    }
-                ]
-            },
-            "properties": [
-                {
-                    "name": "invalid",
-                    "value": {
-                        "type": "token",
-                        "value": "false"
-                    }
-                },
-                {
-                    "name": "focusable",
-                    "value": {
-                        "type": "booleanOrUndefined",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "editable",
-                    "value": {
-                        "type": "token",
-                        "value": "plaintext"
-                    }
-                },
-                {
-                    "name": "settable",
-                    "value": {
-                        "type": "booleanOrUndefined",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "multiline",
-                    "value": {
-                        "type": "boolean",
-                        "value": false
-                    }
-                },
-                {
-                    "name": "readonly",
-                    "value": {
-                        "type": "boolean",
-                        "value": false
-                    }
-                },
-                {
-                    "name": "required",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "labelledby",
-                    "value": {
-                        "type": "nodeList",
-                        "relatedNodes": [
-                            {
-                                "backendDOMNodeId": 178,
-                                "text": "Email"
-                            }
-                        ]
-                    }
-                }
-            ],
-            "parentId": "194",
-            "childIds": [
-                "177",
-                "176"
-            ],
-            "backendDOMNodeId": 179
-        },
-        {
-            "nodeId": "195",
-            "ignored": true,
-            "ignoredReasons": [
-                {
-                    "name": "uninteresting",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                }
-            ],
-            "role": {
-                "type": "role",
-                "value": "none"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 0
-            },
-            "parentId": "200",
-            "childIds": [
-                "187",
-                "188"
-            ],
-            "backendDOMNodeId": 195
-        },
-        {
-            "nodeId": "187",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "LabelText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 104
-            },
-            "name": {
-                "type": "computedString",
-                "value": "",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title"
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "195",
-            "childIds": [
-                "218"
-            ],
-            "backendDOMNodeId": 187
-        },
-        {
-            "nodeId": "188",
-            "ignored": false,
-            "role": {
-                "type": "role",
-                "value": "generic"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 88
-            },
-            "name": {
-                "type": "computedString",
-                "value": "",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "195",
-            "childIds": [
-                "185",
-                "186"
-            ],
-            "backendDOMNodeId": 188
-        },
-        {
-            "nodeId": "196",
-            "ignored": true,
-            "ignoredReasons": [
-                {
-                    "name": "uninteresting",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                }
-            ],
-            "role": {
-                "type": "role",
-                "value": "none"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 0
-            },
-            "parentId": "200",
-            "childIds": [
-                "191",
-                "192"
-            ],
-            "backendDOMNodeId": 196
-        },
-        {
-            "nodeId": "191",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "LabelText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 104
-            },
-            "name": {
-                "type": "computedString",
-                "value": "",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title"
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "196",
-            "childIds": [
-                "220"
-            ],
-            "backendDOMNodeId": 191
-        },
-        {
-            "nodeId": "192",
-            "ignored": false,
-            "role": {
-                "type": "role",
-                "value": "textbox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 170
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Confirm Password",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    },
-                    {
-                        "type": "relatedElement",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Confirm Password"
-                        },
-                        "nativeSource": "labelfor",
-                        "nativeSourceValue": {
-                            "type": "nodeList",
-                            "relatedNodes": [
-                                {
-                                    "backendDOMNodeId": 191,
-                                    "text": "Confirm Password"
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title",
-                        "superseded": true
-                    },
-                    {
-                        "type": "placeholder",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Confirm your password"
-                        },
-                        "attribute": "placeholder",
-                        "attributeValue": {
-                            "type": "string",
-                            "value": "Confirm your password"
-                        },
-                        "superseded": true
-                    },
-                    {
-                        "type": "placeholder",
-                        "attribute": "aria-placeholder",
-                        "superseded": true
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title",
-                        "superseded": true
-                    }
-                ]
-            },
-            "properties": [
-                {
-                    "name": "invalid",
-                    "value": {
-                        "type": "token",
-                        "value": "false"
-                    }
-                },
-                {
-                    "name": "focusable",
-                    "value": {
-                        "type": "booleanOrUndefined",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "editable",
-                    "value": {
-                        "type": "token",
-                        "value": "plaintext"
-                    }
-                },
-                {
-                    "name": "settable",
-                    "value": {
-                        "type": "booleanOrUndefined",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "multiline",
-                    "value": {
-                        "type": "boolean",
-                        "value": false
-                    }
-                },
-                {
-                    "name": "readonly",
-                    "value": {
-                        "type": "boolean",
-                        "value": false
-                    }
-                },
-                {
-                    "name": "required",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                },
-                {
-                    "name": "labelledby",
-                    "value": {
-                        "type": "nodeList",
-                        "relatedNodes": [
-                            {
-                                "backendDOMNodeId": 191,
-                                "text": "Confirm Password"
-                            }
-                        ]
-                    }
-                }
-            ],
-            "parentId": "196",
-            "childIds": [
-                "190",
-                "189"
-            ],
-            "backendDOMNodeId": 192
-        },
-        {
-            "nodeId": "201",
-            "ignored": true,
-            "ignoredReasons": [
-                {
-                    "name": "uninteresting",
-                    "value": {
-                        "type": "boolean",
-                        "value": true
-                    }
-                }
-            ],
-            "role": {
-                "type": "role",
-                "value": "none"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 0
-            },
-            "parentId": "203",
-            "childIds": [
-                "198",
-                "199"
-            ],
-            "backendDOMNodeId": 201
-        },
-        {
-            "nodeId": "198",
-            "ignored": false,
-            "role": {
-                "type": "role",
-                "value": "button"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 9
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Sign Up",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    },
-                    {
-                        "type": "relatedElement",
-                        "nativeSource": "label"
-                    },
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Sign Up"
-                        }
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title",
-                        "superseded": true
-                    }
-                ]
-            },
-            "properties": [
-                {
-                    "name": "invalid",
-                    "value": {
-                        "type": "token",
-                        "value": "false"
-                    }
-                },
-                {
-                    "name": "focusable",
-                    "value": {
-                        "type": "booleanOrUndefined",
-                        "value": true
-                    }
-                }
-            ],
-            "parentId": "201",
-            "childIds": [
-                "222"
-            ],
-            "backendDOMNodeId": 198
-        },
-        {
-            "nodeId": "199",
+            "nodeId": "50",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -1337,46 +614,14 @@
                 ]
             },
             "properties": [],
-            "parentId": "201",
+            "parentId": "7",
             "childIds": [
-                "223",
-                "224",
-                "197"
+                "60"
             ],
-            "backendDOMNodeId": 199
+            "backendDOMNodeId": 50
         },
         {
-            "nodeId": "-1000000036",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "InlineTextBox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 101
-            },
-            "properties": [],
-            "parentId": "212",
-            "childIds": []
-        },
-        {
-            "nodeId": "-1000000037",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "InlineTextBox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 101
-            },
-            "properties": [],
-            "parentId": "213",
-            "childIds": []
-        },
-        {
-            "nodeId": "214",
+            "nodeId": "51",
             "ignored": false,
             "role": {
                 "type": "internalRole",
@@ -1388,28 +633,67 @@
             },
             "name": {
                 "type": "computedString",
-                "value": "Full Name",
+                "value": "SIGN IN",
                 "sources": [
                     {
                         "type": "contents",
                         "value": {
                             "type": "computedString",
-                            "value": "Full Name"
+                            "value": "SIGN IN"
                         }
                     }
                 ]
             },
             "properties": [],
-            "parentId": "174",
+            "parentId": "32",
             "childIds": [
-                "-1000000038"
+                "-1000000002"
             ],
-            "backendDOMNodeId": 214
+            "backendDOMNodeId": 51
         },
         {
-            "nodeId": "211",
+            "nodeId": "52",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "StaticText"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 158
+            },
+            "name": {
+                "type": "computedString",
+                "value": "Enter your credentials to access your dashboard",
+                "sources": [
+                    {
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "Enter your credentials to access your dashboard"
+                        }
+                    }
+                ]
+            },
+            "properties": [],
+            "parentId": "33",
+            "childIds": [
+                "-1000000003"
+            ],
+            "backendDOMNodeId": 52
+        },
+        {
+            "nodeId": "35",
             "ignored": true,
-            "ignoredReasons": [],
+            "ignoredReasons": [
+                {
+                    "name": "uninteresting",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                }
+            ],
             "role": {
                 "type": "role",
                 "value": "none"
@@ -1418,20 +702,50 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "175",
-            "childIds": [],
-            "backendDOMNodeId": 211
+            "parentId": "9",
+            "childIds": [
+                "36",
+                "41"
+            ],
+            "backendDOMNodeId": 35
         },
         {
-            "nodeId": "210",
-            "ignored": false,
+            "nodeId": "36",
+            "ignored": true,
+            "ignoredReasons": [
+                {
+                    "name": "uninteresting",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                }
+            ],
             "role": {
                 "type": "role",
-                "value": "generic"
+                "value": "none"
             },
             "chromeRole": {
                 "type": "internalRole",
-                "value": 88
+                "value": 0
+            },
+            "parentId": "35",
+            "childIds": [
+                "37",
+                "38"
+            ],
+            "backendDOMNodeId": 36
+        },
+        {
+            "nodeId": "37",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "LabelText"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 104
             },
             "name": {
                 "type": "computedString",
@@ -1444,140 +758,22 @@
                     {
                         "type": "attribute",
                         "attribute": "aria-label"
-                    }
-                ]
-            },
-            "properties": [
-                {
-                    "name": "editable",
-                    "value": {
-                        "type": "token",
-                        "value": "plaintext"
-                    }
-                }
-            ],
-            "parentId": "175",
-            "childIds": [],
-            "backendDOMNodeId": 210
-        },
-        {
-            "nodeId": "216",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "StaticText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 158
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Email",
-                "sources": [
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Email"
-                        }
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "178",
-            "childIds": [
-                "-1000000039"
-            ],
-            "backendDOMNodeId": 216
-        },
-        {
-            "nodeId": "177",
-            "ignored": true,
-            "ignoredReasons": [],
-            "role": {
-                "type": "role",
-                "value": "none"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 0
-            },
-            "parentId": "179",
-            "childIds": [],
-            "backendDOMNodeId": 177
-        },
-        {
-            "nodeId": "176",
-            "ignored": false,
-            "role": {
-                "type": "role",
-                "value": "generic"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 88
-            },
-            "name": {
-                "type": "computedString",
-                "value": "",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
                     },
                     {
                         "type": "attribute",
-                        "attribute": "aria-label"
-                    }
-                ]
-            },
-            "properties": [
-                {
-                    "name": "editable",
-                    "value": {
-                        "type": "token",
-                        "value": "plaintext"
-                    }
-                }
-            ],
-            "parentId": "179",
-            "childIds": [],
-            "backendDOMNodeId": 176
-        },
-        {
-            "nodeId": "218",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "StaticText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 158
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Password",
-                "sources": [
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Password"
-                        }
+                        "attribute": "title"
                     }
                 ]
             },
             "properties": [],
-            "parentId": "187",
+            "parentId": "36",
             "childIds": [
-                "-1000000040"
+                "53"
             ],
-            "backendDOMNodeId": 218
+            "backendDOMNodeId": 37
         },
         {
-            "nodeId": "185",
+            "nodeId": "38",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -1589,7 +785,7 @@
             },
             "name": {
                 "type": "computedString",
-                "value": "Password",
+                "value": "EMAIL",
                 "sources": [
                     {
                         "type": "relatedElement",
@@ -1603,15 +799,15 @@
                         "type": "relatedElement",
                         "value": {
                             "type": "computedString",
-                            "value": "Password"
+                            "value": "EMAIL"
                         },
                         "nativeSource": "labelfor",
                         "nativeSourceValue": {
                             "type": "nodeList",
                             "relatedNodes": [
                                 {
-                                    "backendDOMNodeId": 187,
-                                    "text": "Password"
+                                    "backendDOMNodeId": 37,
+                                    "text": "EMAIL"
                                 }
                             ]
                         }
@@ -1625,12 +821,12 @@
                         "type": "placeholder",
                         "value": {
                             "type": "computedString",
-                            "value": "At least 6 characters"
+                            "value": "your@email.com"
                         },
                         "attribute": "placeholder",
                         "attributeValue": {
                             "type": "string",
-                            "value": "At least 6 characters"
+                            "value": "your@email.com"
                         },
                         "superseded": true
                     },
@@ -1702,30 +898,57 @@
                         "type": "nodeList",
                         "relatedNodes": [
                             {
-                                "backendDOMNodeId": 187,
-                                "text": "Password"
+                                "backendDOMNodeId": 37,
+                                "text": "EMAIL"
                             }
                         ]
                     }
                 }
             ],
-            "parentId": "188",
+            "parentId": "36",
             "childIds": [
-                "181",
-                "180"
+                "39",
+                "40"
             ],
-            "backendDOMNodeId": 185
+            "backendDOMNodeId": 38
         },
         {
-            "nodeId": "186",
-            "ignored": false,
+            "nodeId": "41",
+            "ignored": true,
+            "ignoredReasons": [
+                {
+                    "name": "uninteresting",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                }
+            ],
             "role": {
                 "type": "role",
-                "value": "button"
+                "value": "none"
             },
             "chromeRole": {
                 "type": "internalRole",
-                "value": 9
+                "value": 0
+            },
+            "parentId": "35",
+            "childIds": [
+                "42",
+                "43"
+            ],
+            "backendDOMNodeId": 41
+        },
+        {
+            "nodeId": "42",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "LabelText"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 104
             },
             "name": {
                 "type": "computedString",
@@ -1740,15 +963,196 @@
                         "attribute": "aria-label"
                     },
                     {
+                        "type": "attribute",
+                        "attribute": "title"
+                    }
+                ]
+            },
+            "properties": [],
+            "parentId": "41",
+            "childIds": [
+                "54"
+            ],
+            "backendDOMNodeId": 42
+        },
+        {
+            "nodeId": "43",
+            "ignored": false,
+            "role": {
+                "type": "role",
+                "value": "textbox"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 170
+            },
+            "name": {
+                "type": "computedString",
+                "value": "PASSWORD",
+                "sources": [
+                    {
+                        "type": "relatedElement",
+                        "attribute": "aria-labelledby"
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "aria-label"
+                    },
+                    {
+                        "type": "relatedElement",
+                        "value": {
+                            "type": "computedString",
+                            "value": "PASSWORD"
+                        },
+                        "nativeSource": "labelfor",
+                        "nativeSourceValue": {
+                            "type": "nodeList",
+                            "relatedNodes": [
+                                {
+                                    "backendDOMNodeId": 42,
+                                    "text": "PASSWORD"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "title",
+                        "superseded": true
+                    },
+                    {
+                        "type": "placeholder",
+                        "value": {
+                            "type": "computedString",
+                            "value": "••••••••"
+                        },
+                        "attribute": "placeholder",
+                        "attributeValue": {
+                            "type": "string",
+                            "value": "••••••••"
+                        },
+                        "superseded": true
+                    },
+                    {
+                        "type": "placeholder",
+                        "attribute": "aria-placeholder",
+                        "superseded": true
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "title",
+                        "superseded": true
+                    }
+                ]
+            },
+            "properties": [
+                {
+                    "name": "invalid",
+                    "value": {
+                        "type": "token",
+                        "value": "false"
+                    }
+                },
+                {
+                    "name": "focusable",
+                    "value": {
+                        "type": "booleanOrUndefined",
+                        "value": true
+                    }
+                },
+                {
+                    "name": "editable",
+                    "value": {
+                        "type": "token",
+                        "value": "plaintext"
+                    }
+                },
+                {
+                    "name": "settable",
+                    "value": {
+                        "type": "booleanOrUndefined",
+                        "value": true
+                    }
+                },
+                {
+                    "name": "multiline",
+                    "value": {
+                        "type": "boolean",
+                        "value": false
+                    }
+                },
+                {
+                    "name": "readonly",
+                    "value": {
+                        "type": "boolean",
+                        "value": false
+                    }
+                },
+                {
+                    "name": "required",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                },
+                {
+                    "name": "labelledby",
+                    "value": {
+                        "type": "nodeList",
+                        "relatedNodes": [
+                            {
+                                "backendDOMNodeId": 42,
+                                "text": "PASSWORD"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "parentId": "41",
+            "childIds": [
+                "44",
+                "45"
+            ],
+            "backendDOMNodeId": 43
+        },
+        {
+            "nodeId": "5",
+            "ignored": false,
+            "role": {
+                "type": "role",
+                "value": "button"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 9
+            },
+            "name": {
+                "type": "computedString",
+                "value": "SIGN IN",
+                "sources": [
+                    {
+                        "type": "relatedElement",
+                        "attribute": "aria-labelledby"
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "aria-label"
+                    },
+                    {
                         "type": "relatedElement",
                         "nativeSource": "label"
                     },
                     {
-                        "type": "contents"
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "SIGN IN"
+                        }
                     },
                     {
                         "type": "attribute",
-                        "attribute": "title"
+                        "attribute": "title",
+                        "superseded": true
                     }
                 ]
             },
@@ -1768,47 +1172,24 @@
                     }
                 }
             ],
-            "parentId": "188",
+            "parentId": "9",
             "childIds": [
-                "184"
+                "55"
             ],
-            "backendDOMNodeId": 186
+            "backendDOMNodeId": 5
         },
         {
-            "nodeId": "220",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "StaticText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 158
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Confirm Password",
-                "sources": [
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Confirm Password"
-                        }
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "191",
-            "childIds": [
-                "-1000000041"
-            ],
-            "backendDOMNodeId": 220
-        },
-        {
-            "nodeId": "190",
+            "nodeId": "46",
             "ignored": true,
-            "ignoredReasons": [],
+            "ignoredReasons": [
+                {
+                    "name": "uninteresting",
+                    "value": {
+                        "type": "boolean",
+                        "value": true
+                    }
+                }
+            ],
             "role": {
                 "type": "role",
                 "value": "none"
@@ -1817,155 +1198,51 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "192",
+            "parentId": "9",
             "childIds": [],
-            "backendDOMNodeId": 190
+            "backendDOMNodeId": 46
         },
         {
-            "nodeId": "189",
-            "ignored": false,
-            "role": {
-                "type": "role",
-                "value": "generic"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 88
-            },
-            "name": {
-                "type": "computedString",
-                "value": "",
-                "sources": [
-                    {
-                        "type": "relatedElement",
-                        "attribute": "aria-labelledby"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "aria-label"
-                    }
-                ]
-            },
-            "properties": [
+            "nodeId": "47",
+            "ignored": true,
+            "ignoredReasons": [
                 {
-                    "name": "editable",
+                    "name": "uninteresting",
                     "value": {
-                        "type": "token",
-                        "value": "plaintext"
+                        "type": "boolean",
+                        "value": true
                     }
                 }
             ],
-            "parentId": "192",
-            "childIds": [],
-            "backendDOMNodeId": 189
-        },
-        {
-            "nodeId": "222",
-            "ignored": false,
             "role": {
-                "type": "internalRole",
-                "value": "StaticText"
+                "type": "role",
+                "value": "none"
             },
             "chromeRole": {
                 "type": "internalRole",
-                "value": 158
+                "value": 0
             },
-            "name": {
-                "type": "computedString",
-                "value": "Sign Up",
-                "sources": [
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Sign Up"
-                        }
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "198",
+            "parentId": "9",
             "childIds": [
-                "-1000000042"
+                "6",
+                "48"
             ],
-            "backendDOMNodeId": 222
+            "backendDOMNodeId": 47
         },
         {
-            "nodeId": "223",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "StaticText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 158
-            },
-            "name": {
-                "type": "computedString",
-                "value": "Already have an account?",
-                "sources": [
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": "Already have an account?"
-                        }
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "199",
-            "childIds": [
-                "-1000000043"
-            ],
-            "backendDOMNodeId": 223
-        },
-        {
-            "nodeId": "224",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "StaticText"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 158
-            },
-            "name": {
-                "type": "computedString",
-                "value": " ",
-                "sources": [
-                    {
-                        "type": "contents",
-                        "value": {
-                            "type": "computedString",
-                            "value": " "
-                        }
-                    }
-                ]
-            },
-            "properties": [],
-            "parentId": "199",
-            "childIds": [
-                "-1000000044"
-            ],
-            "backendDOMNodeId": 224
-        },
-        {
-            "nodeId": "197",
+            "nodeId": "6",
             "ignored": false,
             "role": {
                 "type": "role",
-                "value": "link"
+                "value": "button"
             },
             "chromeRole": {
                 "type": "internalRole",
-                "value": 110
+                "value": 9
             },
             "name": {
                 "type": "computedString",
-                "value": "Sign in",
+                "value": "FORGOT PASSWORD?",
                 "sources": [
                     {
                         "type": "relatedElement",
@@ -1976,10 +1253,14 @@
                         "attribute": "aria-label"
                     },
                     {
+                        "type": "relatedElement",
+                        "nativeSource": "label"
+                    },
+                    {
                         "type": "contents",
                         "value": {
                             "type": "computedString",
-                            "value": "Sign in"
+                            "value": "FORGOT PASSWORD?"
                         }
                     },
                     {
@@ -1991,28 +1272,92 @@
             },
             "properties": [
                 {
+                    "name": "invalid",
+                    "value": {
+                        "type": "token",
+                        "value": "false"
+                    }
+                },
+                {
                     "name": "focusable",
                     "value": {
                         "type": "booleanOrUndefined",
                         "value": true
                     }
-                },
-                {
-                    "name": "url",
-                    "value": {
-                        "type": "string",
-                        "value": "https://office.eeee.mu/login"
-                    }
                 }
             ],
-            "parentId": "199",
+            "parentId": "47",
             "childIds": [
-                "225"
+                "56"
             ],
-            "backendDOMNodeId": 197
+            "backendDOMNodeId": 6
         },
         {
-            "nodeId": "-1000000038",
+            "nodeId": "48",
+            "ignored": false,
+            "role": {
+                "type": "role",
+                "value": "generic"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 88
+            },
+            "name": {
+                "type": "computedString",
+                "value": "",
+                "sources": [
+                    {
+                        "type": "relatedElement",
+                        "attribute": "aria-labelledby"
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "aria-label"
+                    }
+                ]
+            },
+            "properties": [],
+            "parentId": "47",
+            "childIds": [
+                "57",
+                "49"
+            ],
+            "backendDOMNodeId": 48
+        },
+        {
+            "nodeId": "60",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "StaticText"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 158
+            },
+            "name": {
+                "type": "computedString",
+                "value": "PORT LOUIS, MU • 230",
+                "sources": [
+                    {
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "PORT LOUIS, MU • 230"
+                        }
+                    }
+                ]
+            },
+            "properties": [],
+            "parentId": "50",
+            "childIds": [
+                "-1000000010"
+            ],
+            "backendDOMNodeId": 60
+        },
+        {
+            "nodeId": "-1000000002",
             "ignored": false,
             "role": {
                 "type": "internalRole",
@@ -2023,11 +1368,11 @@
                 "value": 101
             },
             "properties": [],
-            "parentId": "214",
+            "parentId": "51",
             "childIds": []
         },
         {
-            "nodeId": "-1000000039",
+            "nodeId": "-1000000003",
             "ignored": false,
             "role": {
                 "type": "internalRole",
@@ -2038,26 +1383,42 @@
                 "value": 101
             },
             "properties": [],
-            "parentId": "216",
+            "parentId": "52",
             "childIds": []
         },
         {
-            "nodeId": "-1000000040",
+            "nodeId": "53",
             "ignored": false,
             "role": {
                 "type": "internalRole",
-                "value": "InlineTextBox"
+                "value": "StaticText"
             },
             "chromeRole": {
                 "type": "internalRole",
-                "value": 101
+                "value": 158
+            },
+            "name": {
+                "type": "computedString",
+                "value": "EMAIL",
+                "sources": [
+                    {
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "EMAIL"
+                        }
+                    }
+                ]
             },
             "properties": [],
-            "parentId": "218",
-            "childIds": []
+            "parentId": "37",
+            "childIds": [
+                "-1000000004"
+            ],
+            "backendDOMNodeId": 53
         },
         {
-            "nodeId": "181",
+            "nodeId": "39",
             "ignored": true,
             "ignoredReasons": [],
             "role": {
@@ -2068,12 +1429,12 @@
                 "type": "internalRole",
                 "value": 0
             },
-            "parentId": "185",
+            "parentId": "38",
             "childIds": [],
-            "backendDOMNodeId": 181
+            "backendDOMNodeId": 39
         },
         {
-            "nodeId": "180",
+            "nodeId": "40",
             "ignored": false,
             "role": {
                 "type": "role",
@@ -2106,20 +1467,67 @@
                     }
                 }
             ],
-            "parentId": "185",
+            "parentId": "38",
             "childIds": [],
-            "backendDOMNodeId": 180
+            "backendDOMNodeId": 40
         },
         {
-            "nodeId": "184",
+            "nodeId": "54",
             "ignored": false,
             "role": {
-                "type": "role",
-                "value": "image"
+                "type": "internalRole",
+                "value": "StaticText"
             },
             "chromeRole": {
                 "type": "internalRole",
-                "value": 99
+                "value": 158
+            },
+            "name": {
+                "type": "computedString",
+                "value": "PASSWORD",
+                "sources": [
+                    {
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "PASSWORD"
+                        }
+                    }
+                ]
+            },
+            "properties": [],
+            "parentId": "42",
+            "childIds": [
+                "-1000000005"
+            ],
+            "backendDOMNodeId": 54
+        },
+        {
+            "nodeId": "44",
+            "ignored": true,
+            "ignoredReasons": [],
+            "role": {
+                "type": "role",
+                "value": "none"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 0
+            },
+            "parentId": "43",
+            "childIds": [],
+            "backendDOMNodeId": 44
+        },
+        {
+            "nodeId": "45",
+            "ignored": false,
+            "role": {
+                "type": "role",
+                "value": "generic"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 88
             },
             "name": {
                 "type": "computedString",
@@ -2132,84 +1540,24 @@
                     {
                         "type": "attribute",
                         "attribute": "aria-label"
-                    },
-                    {
-                        "type": "relatedElement",
-                        "nativeSource": "title"
-                    },
-                    {
-                        "type": "attribute",
-                        "attribute": "title"
                     }
                 ]
             },
-            "properties": [],
-            "parentId": "186",
+            "properties": [
+                {
+                    "name": "editable",
+                    "value": {
+                        "type": "token",
+                        "value": "plaintext"
+                    }
+                }
+            ],
+            "parentId": "43",
             "childIds": [],
-            "backendDOMNodeId": 184
+            "backendDOMNodeId": 45
         },
         {
-            "nodeId": "-1000000041",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "InlineTextBox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 101
-            },
-            "properties": [],
-            "parentId": "220",
-            "childIds": []
-        },
-        {
-            "nodeId": "-1000000042",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "InlineTextBox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 101
-            },
-            "properties": [],
-            "parentId": "222",
-            "childIds": []
-        },
-        {
-            "nodeId": "-1000000043",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "InlineTextBox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 101
-            },
-            "properties": [],
-            "parentId": "223",
-            "childIds": []
-        },
-        {
-            "nodeId": "-1000000044",
-            "ignored": false,
-            "role": {
-                "type": "internalRole",
-                "value": "InlineTextBox"
-            },
-            "chromeRole": {
-                "type": "internalRole",
-                "value": 101
-            },
-            "properties": [],
-            "parentId": "224",
-            "childIds": []
-        },
-        {
-            "nodeId": "225",
+            "nodeId": "55",
             "ignored": false,
             "role": {
                 "type": "internalRole",
@@ -2221,26 +1569,151 @@
             },
             "name": {
                 "type": "computedString",
-                "value": "Sign in",
+                "value": "SIGN IN",
                 "sources": [
                     {
                         "type": "contents",
                         "value": {
                             "type": "computedString",
-                            "value": "Sign in"
+                            "value": "SIGN IN"
                         }
                     }
                 ]
             },
             "properties": [],
-            "parentId": "197",
+            "parentId": "5",
             "childIds": [
-                "-1000000045"
+                "-1000000006"
             ],
-            "backendDOMNodeId": 225
+            "backendDOMNodeId": 55
         },
         {
-            "nodeId": "-1000000045",
+            "nodeId": "56",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "StaticText"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 158
+            },
+            "name": {
+                "type": "computedString",
+                "value": "FORGOT PASSWORD?",
+                "sources": [
+                    {
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "FORGOT PASSWORD?"
+                        }
+                    }
+                ]
+            },
+            "properties": [],
+            "parentId": "6",
+            "childIds": [
+                "-1000000007"
+            ],
+            "backendDOMNodeId": 56
+        },
+        {
+            "nodeId": "57",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "StaticText"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 158
+            },
+            "name": {
+                "type": "computedString",
+                "value": "Don't have an account?",
+                "sources": [
+                    {
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "Don't have an account?"
+                        }
+                    }
+                ]
+            },
+            "properties": [],
+            "parentId": "48",
+            "childIds": [
+                "-1000000008"
+            ],
+            "backendDOMNodeId": 57
+        },
+        {
+            "nodeId": "49",
+            "ignored": false,
+            "role": {
+                "type": "role",
+                "value": "button"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 9
+            },
+            "name": {
+                "type": "computedString",
+                "value": "SIGN UP",
+                "sources": [
+                    {
+                        "type": "relatedElement",
+                        "attribute": "aria-labelledby"
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "aria-label"
+                    },
+                    {
+                        "type": "relatedElement",
+                        "nativeSource": "label"
+                    },
+                    {
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "SIGN UP"
+                        }
+                    },
+                    {
+                        "type": "attribute",
+                        "attribute": "title",
+                        "superseded": true
+                    }
+                ]
+            },
+            "properties": [
+                {
+                    "name": "invalid",
+                    "value": {
+                        "type": "token",
+                        "value": "false"
+                    }
+                },
+                {
+                    "name": "focusable",
+                    "value": {
+                        "type": "booleanOrUndefined",
+                        "value": true
+                    }
+                }
+            ],
+            "parentId": "48",
+            "childIds": [
+                "59"
+            ],
+            "backendDOMNodeId": 49
+        },
+        {
+            "nodeId": "-1000000010",
             "ignored": false,
             "role": {
                 "type": "internalRole",
@@ -2251,7 +1724,128 @@
                 "value": 101
             },
             "properties": [],
-            "parentId": "225",
+            "parentId": "60",
+            "childIds": []
+        },
+        {
+            "nodeId": "-1000000004",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "InlineTextBox"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 101
+            },
+            "properties": [],
+            "parentId": "53",
+            "childIds": []
+        },
+        {
+            "nodeId": "-1000000005",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "InlineTextBox"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 101
+            },
+            "properties": [],
+            "parentId": "54",
+            "childIds": []
+        },
+        {
+            "nodeId": "-1000000006",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "InlineTextBox"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 101
+            },
+            "properties": [],
+            "parentId": "55",
+            "childIds": []
+        },
+        {
+            "nodeId": "-1000000007",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "InlineTextBox"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 101
+            },
+            "properties": [],
+            "parentId": "56",
+            "childIds": []
+        },
+        {
+            "nodeId": "-1000000008",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "InlineTextBox"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 101
+            },
+            "properties": [],
+            "parentId": "57",
+            "childIds": []
+        },
+        {
+            "nodeId": "59",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "StaticText"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 158
+            },
+            "name": {
+                "type": "computedString",
+                "value": "SIGN UP",
+                "sources": [
+                    {
+                        "type": "contents",
+                        "value": {
+                            "type": "computedString",
+                            "value": "SIGN UP"
+                        }
+                    }
+                ]
+            },
+            "properties": [],
+            "parentId": "49",
+            "childIds": [
+                "-1000000009"
+            ],
+            "backendDOMNodeId": 59
+        },
+        {
+            "nodeId": "-1000000009",
+            "ignored": false,
+            "role": {
+                "type": "internalRole",
+                "value": "InlineTextBox"
+            },
+            "chromeRole": {
+                "type": "internalRole",
+                "value": 101
+            },
+            "properties": [],
+            "parentId": "59",
             "childIds": []
         }
     ],
