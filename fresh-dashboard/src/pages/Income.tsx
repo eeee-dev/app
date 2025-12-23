@@ -140,7 +140,6 @@ const IncomePage: React.FC = () => {
 
     try {
       await incomeService.create({
-        id: `inc-${Date.now()}`,
         invoice_number: newIncome.invoice_number,
         client_name: newIncome.client_name,
         client_email: newIncome.client_email,

@@ -74,7 +74,6 @@ const Projects: React.FC = () => {
       }
 
       await projectsService.create({
-        id: `proj-${Date.now()}`,
         name: newProject.name,
         code: newProject.code,
         department_id: newProject.department_id,

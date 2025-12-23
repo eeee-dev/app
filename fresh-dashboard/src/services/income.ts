@@ -15,14 +15,17 @@ export interface Income {
   project_id?: string;
   description?: string;
   created_by?: string;
+  user_id?: string;
   created_at?: string;
   updated_at?: string;
 }
 
+const TABLE_NAME = 'app_72505145eb_enhanced_income';
+
 export const incomeService = {
   async getAll(): Promise<Income[]> {
     const { data, error } = await supabase
-      .from('income')
+      .from(TABLE_NAME)
       .select('*')
       .order('date', { ascending: false });
     
@@ -32,7 +35,7 @@ export const incomeService = {
 
   async getById(id: string): Promise<Income | null> {
     const { data, error } = await supabase
-      .from('income')
+      .from(TABLE_NAME)
       .select('*')
       .eq('id', id)
       .single();
@@ -41,12 +44,17 @@ export const incomeService = {
     return data;
   },
 
-  async create(income: Omit<Income, 'created_at' | 'updated_at' | 'created_by'>): Promise<Income> {
+  async create(income: Omit<Income, 'id' | 'created_at' | 'updated_at'>): Promise<Income> {
     const { data: { user } } = await supabase.auth.getUser();
     
+    const incomeData = {
+      ...income,
+      user_id: user?.id
+    };
+
     const { data, error } = await supabase
-      .from('income')
-      .insert([{ ...income, created_by: user?.id }])
+      .from(TABLE_NAME)
+      .insert([incomeData])
       .select()
       .single();
     
@@ -56,7 +64,7 @@ export const incomeService = {
 
   async update(id: string, income: Partial<Income>): Promise<Income> {
     const { data, error } = await supabase
-      .from('income')
+      .from(TABLE_NAME)
       .update({ ...income, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -68,7 +76,7 @@ export const incomeService = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('income')
+      .from(TABLE_NAME)
       .delete()
       .eq('id', id);
     

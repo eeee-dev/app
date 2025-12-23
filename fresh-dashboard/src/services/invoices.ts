@@ -13,14 +13,17 @@ export interface Invoice {
   status: 'draft' | 'sent' | 'pending' | 'paid' | 'overdue' | 'cancelled';
   description?: string;
   created_by?: string;
+  user_id?: string;
   created_at?: string;
   updated_at?: string;
 }
 
+const TABLE_NAME = 'app_72505145eb_invoices';
+
 export const invoicesService = {
   async getAll(): Promise<Invoice[]> {
     const { data, error } = await supabase
-      .from('invoices')
+      .from(TABLE_NAME)
       .select('*')
       .order('date', { ascending: false });
     
@@ -30,7 +33,7 @@ export const invoicesService = {
 
   async getById(id: string): Promise<Invoice | null> {
     const { data, error } = await supabase
-      .from('invoices')
+      .from(TABLE_NAME)
       .select('*')
       .eq('id', id)
       .single();
@@ -39,12 +42,17 @@ export const invoicesService = {
     return data;
   },
 
-  async create(invoice: Omit<Invoice, 'created_at' | 'updated_at' | 'created_by'>): Promise<Invoice> {
+  async create(invoice: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>): Promise<Invoice> {
     const { data: { user } } = await supabase.auth.getUser();
     
+    const invoiceData = {
+      ...invoice,
+      user_id: user?.id
+    };
+
     const { data, error } = await supabase
-      .from('invoices')
-      .insert([{ ...invoice, created_by: user?.id }])
+      .from(TABLE_NAME)
+      .insert([invoiceData])
       .select()
       .single();
     
@@ -54,7 +62,7 @@ export const invoicesService = {
 
   async update(id: string, invoice: Partial<Invoice>): Promise<Invoice> {
     const { data, error } = await supabase
-      .from('invoices')
+      .from(TABLE_NAME)
       .update({ ...invoice, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -66,7 +74,7 @@ export const invoicesService = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('invoices')
+      .from(TABLE_NAME)
       .delete()
       .eq('id', id);
     

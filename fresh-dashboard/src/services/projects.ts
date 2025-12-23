@@ -17,10 +17,12 @@ export interface Project {
   updated_at?: string;
 }
 
+const TABLE_NAME = 'app_72505145eb_projects';
+
 export const projectsService = {
   async getAll(): Promise<Project[]> {
     const { data, error } = await supabase
-      .from('projects')
+      .from(TABLE_NAME)
       .select('*')
       .order('created_at', { ascending: false });
     
@@ -30,7 +32,7 @@ export const projectsService = {
 
   async getById(id: string): Promise<Project | null> {
     const { data, error } = await supabase
-      .from('projects')
+      .from(TABLE_NAME)
       .select('*')
       .eq('id', id)
       .single();
@@ -39,9 +41,9 @@ export const projectsService = {
     return data;
   },
 
-  async create(project: Omit<Project, 'created_at' | 'updated_at'>): Promise<Project> {
+  async create(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
     const { data, error } = await supabase
-      .from('projects')
+      .from(TABLE_NAME)
       .insert([project])
       .select()
       .single();
@@ -52,7 +54,7 @@ export const projectsService = {
 
   async update(id: string, project: Partial<Project>): Promise<Project> {
     const { data, error } = await supabase
-      .from('projects')
+      .from(TABLE_NAME)
       .update({ ...project, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -64,7 +66,7 @@ export const projectsService = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('projects')
+      .from(TABLE_NAME)
       .delete()
       .eq('id', id);
     

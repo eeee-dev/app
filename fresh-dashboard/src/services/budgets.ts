@@ -14,10 +14,12 @@ export interface Budget {
   updated_at?: string;
 }
 
+const TABLE_NAME = 'app_72505145eb_budgets';
+
 export const budgetsService = {
   async getAll(): Promise<Budget[]> {
     const { data, error } = await supabase
-      .from('budgets')
+      .from(TABLE_NAME)
       .select('*')
       .order('created_at', { ascending: false });
     
@@ -27,7 +29,7 @@ export const budgetsService = {
 
   async getById(id: string): Promise<Budget | null> {
     const { data, error } = await supabase
-      .from('budgets')
+      .from(TABLE_NAME)
       .select('*')
       .eq('id', id)
       .single();
@@ -36,9 +38,9 @@ export const budgetsService = {
     return data;
   },
 
-  async create(budget: Omit<Budget, 'created_at' | 'updated_at'>): Promise<Budget> {
+  async create(budget: Omit<Budget, 'id' | 'created_at' | 'updated_at'>): Promise<Budget> {
     const { data, error } = await supabase
-      .from('budgets')
+      .from(TABLE_NAME)
       .insert([budget])
       .select()
       .single();
@@ -49,7 +51,7 @@ export const budgetsService = {
 
   async update(id: string, budget: Partial<Budget>): Promise<Budget> {
     const { data, error } = await supabase
-      .from('budgets')
+      .from(TABLE_NAME)
       .update({ ...budget, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -61,7 +63,7 @@ export const budgetsService = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('budgets')
+      .from(TABLE_NAME)
       .delete()
       .eq('id', id);
     
