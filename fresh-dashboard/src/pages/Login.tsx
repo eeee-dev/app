@@ -17,6 +17,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Login form submitted', { email, password: '***' });
     setLoading(true);
 
     try {
@@ -24,6 +25,7 @@ export default function Login() {
       const trimmedEmail = email.trim().toLowerCase();
       
       if (!trimmedEmail) {
+        console.log('Email validation failed');
         toast({
           title: 'Email Required',
           description: 'Please enter your email address.',
@@ -34,6 +36,7 @@ export default function Login() {
       }
 
       if (!password) {
+        console.log('Password validation failed');
         toast({
           title: 'Password Required',
           description: 'Please enter your password.',
@@ -43,7 +46,9 @@ export default function Login() {
         return;
       }
 
+      console.log('Calling signIn function...');
       const { error } = await signIn(trimmedEmail, password);
+      console.log('SignIn result:', { error });
 
       if (error) {
         // Provide specific error messages
@@ -59,12 +64,14 @@ export default function Login() {
           errorMessage = 'Too many login attempts. Please wait a moment and try again.';
         }
 
+        console.error('Login error:', error.message);
         toast({
           title: 'Sign In Failed',
           description: errorMessage,
           variant: 'destructive',
         });
       } else {
+        console.log('Login successful, redirecting...');
         toast({
           title: 'Welcome back!',
           description: 'Successfully signed in.',
