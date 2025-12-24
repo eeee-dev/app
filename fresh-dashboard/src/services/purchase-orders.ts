@@ -24,7 +24,10 @@ export const purchaseOrdersService = {
       .select('*')
       .order('date', { ascending: false });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching purchase orders:', error);
+      throw error;
+    }
     return data || [];
   },
 
@@ -35,7 +38,10 @@ export const purchaseOrdersService = {
       .eq('id', id)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching purchase order:', error);
+      throw error;
+    }
     return data;
   },
 
@@ -48,7 +54,10 @@ export const purchaseOrdersService = {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating purchase order:', error);
+      throw error;
+    }
     return data;
   },
 
@@ -60,16 +69,61 @@ export const purchaseOrdersService = {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating purchase order:', error);
+      throw error;
+    }
     return data;
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    // First verify the record exists and belongs to the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Check if the record exists
+    const { data: existingRecord, error: fetchError } = await supabase
+      .from(TABLE_NAME)
+      .select('id, user_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching record before delete:', fetchError);
+      throw new Error('Purchase order not found or access denied');
+    }
+
+    if (!existingRecord) {
+      throw new Error('Purchase order not found');
+    }
+
+    // Perform the deletion
+    const { error: deleteError } = await supabase
       .from(TABLE_NAME)
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id); // Ensure user can only delete their own records
     
-    if (error) throw error;
+    if (deleteError) {
+      console.error('Error deleting purchase order:', deleteError);
+      throw new Error(`Failed to delete purchase order: ${deleteError.message}`);
+    }
+
+    // Verify deletion was successful
+    const { data: verifyData, error: verifyError } = await supabase
+      .from(TABLE_NAME)
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (verifyData) {
+      console.error('Purchase order still exists after deletion');
+      throw new Error('Deletion verification failed - record still exists');
+    }
+
+    console.log('Purchase order deleted successfully:', id);
   }
 };

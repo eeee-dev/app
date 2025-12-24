@@ -181,18 +181,48 @@ const PurchaseOrders: React.FC = () => {
   };
 
   const handleDeletePO = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this purchase order?')) {
-      try {
-        await purchaseOrdersService.delete(id);
-        await loadData();
-        toast.success('Purchase order deleted successfully');
-        if (isViewDialogOpen) {
-          setIsViewDialogOpen(false);
-        }
-      } catch (error) {
-        console.error('Error deleting PO:', error);
-        toast.error('Failed to delete purchase order');
+    if (!window.confirm('Are you sure you want to delete this purchase order? This action cannot be undone.')) {
+      return;
+    }
+
+    // Optimistic UI update - remove from UI immediately
+    const deletedPO = purchaseOrders.find(po => po.id === id);
+    setPurchaseOrders(prev => prev.filter(po => po.id !== id));
+    
+    // Close dialogs if open
+    if (isViewDialogOpen) {
+      setIsViewDialogOpen(false);
+    }
+    if (isEditDialogOpen) {
+      setIsEditDialogOpen(false);
+    }
+
+    try {
+      // Perform the actual deletion
+      await purchaseOrdersService.delete(id);
+      
+      // Wait a moment for database transaction to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Reload data to ensure consistency
+      await loadData();
+      
+      toast.success('Purchase order deleted successfully');
+    } catch (error) {
+      console.error('Error deleting PO:', error);
+      
+      // Rollback optimistic update on error
+      if (deletedPO) {
+        setPurchaseOrders(prev => [...prev, deletedPO].sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        ));
       }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete purchase order. Please try again.';
+      toast.error(errorMessage);
+      
+      // Reload data to ensure UI matches database state
+      await loadData();
     }
   };
 
