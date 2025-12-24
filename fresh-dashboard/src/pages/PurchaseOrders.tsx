@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,75 +38,33 @@ interface NewPOForm {
   contactEmail: string;
 }
 
+const STORAGE_KEY = 'purchase_orders_data';
+
 const PurchaseOrders: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
-    {
-      id: '1',
-      poNumber: 'PO-2024-001',
-      vendor: 'Office Supplies Inc.',
-      amount: 2500,
-      date: '2024-01-10',
-      status: 'approved',
-      items: 15,
-      description: 'Office supplies for Q1',
-      deliveryDate: '2024-01-20',
-      contactPerson: 'John Smith',
-      contactEmail: 'john@officesupplies.com'
-    },
-    {
-      id: '2',
-      poNumber: 'PO-2024-002',
-      vendor: 'Tech Equipment Co.',
-      amount: 12500,
-      date: '2024-01-12',
-      status: 'pending',
-      items: 8,
-      description: 'Computer equipment upgrade',
-      deliveryDate: '2024-01-25',
-      contactPerson: 'Sarah Johnson',
-      contactEmail: 'sarah@techequip.com'
-    },
-    {
-      id: '3',
-      poNumber: 'PO-2024-003',
-      vendor: 'Software Solutions Ltd.',
-      amount: 8500,
-      date: '2024-01-08',
-      status: 'completed',
-      items: 3,
-      description: 'Software licenses annual renewal',
-      deliveryDate: '2024-01-15',
-      contactPerson: 'Mike Chen',
-      contactEmail: 'mike@softwaresol.com'
-    },
-    {
-      id: '4',
-      poNumber: 'PO-2024-004',
-      vendor: 'Furniture Warehouse',
-      amount: 4200,
-      date: '2024-01-15',
-      status: 'draft',
-      items: 12,
-      description: 'Office furniture for new workspace',
-      deliveryDate: '2024-02-01',
-      contactPerson: 'Lisa Brown',
-      contactEmail: 'lisa@furniture.com'
-    },
-    {
-      id: '5',
-      poNumber: 'PO-2024-005',
-      vendor: 'Marketing Agency',
-      amount: 7500,
-      date: '2024-01-18',
-      status: 'rejected',
-      items: 5,
-      description: 'Marketing campaign materials',
-      deliveryDate: '2024-01-30',
-      contactPerson: 'Tom Wilson',
-      contactEmail: 'tom@marketing.com'
-    },
-  ]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setPurchaseOrders(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error loading purchase orders:', error);
+        setPurchaseOrders([]);
+      }
+    }
+  }, []);
+
+  // Save to localStorage whenever purchaseOrders changes
+  useEffect(() => {
+    if (purchaseOrders.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(purchaseOrders));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [purchaseOrders]);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -148,7 +106,7 @@ const PurchaseOrders: React.FC = () => {
     }
 
     const createdPO: PurchaseOrder = {
-      id: (purchaseOrders.length + 1).toString(),
+      id: Date.now().toString(),
       poNumber: `PO-2024-${(purchaseOrders.length + 1).toString().padStart(3, '0')}`,
       vendor: newPO.vendor,
       amount: newPO.amount,
@@ -513,24 +471,6 @@ const PurchaseOrders: React.FC = () => {
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="filter">Filter by Status</Label>
-              <div className="flex gap-2 mt-1">
-                <Button className="border border-gray-300 bg-transparent hover:bg-gray-100 text-sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  All
-                </Button>
-                <Button className="border border-gray-300 bg-transparent hover:bg-gray-100 text-sm">
-                  Draft
-                </Button>
-                <Button className="border border-gray-300 bg-transparent hover:bg-gray-100 text-sm">
-                  Pending
-                </Button>
-                <Button className="border border-gray-300 bg-transparent hover:bg-gray-100 text-sm">
-                  Approved
-                </Button>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -593,7 +533,7 @@ const PurchaseOrders: React.FC = () => {
           </div>
           {filteredOrders.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              No purchase orders found matching your search.
+              No purchase orders found. Click "New PO" to create one.
             </div>
           )}
         </CardContent>

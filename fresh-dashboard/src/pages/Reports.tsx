@@ -1,9 +1,20 @@
-import React from 'react';
-import { FileText, BarChart3, PieChart, Download, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, BarChart3, PieChart, Download, Calendar, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+
+interface Report {
+  id: number;
+  name: string;
+  type: string;
+  date: string;
+  size: string;
+}
+
+const STORAGE_KEY = 'financial_reports_data';
 
 const Reports: React.FC = () => {
   const reportTypes = [
@@ -41,12 +52,49 @@ const Reports: React.FC = () => {
     }
   ];
 
-  const recentReports = [
-    { id: 1, name: 'Q4 2024 Financial Summary', type: 'Financial', date: 'Dec 15, 2024', size: '2.4 MB' },
-    { id: 2, name: 'November Expense Analysis', type: 'Expense', date: 'Dec 1, 2024', size: '1.8 MB' },
-    { id: 3, name: 'Annual Budget Review 2024', type: 'Budget', date: 'Nov 28, 2024', size: '3.2 MB' },
-    { id: 4, name: 'Department Performance Q3', type: 'Department', date: 'Nov 15, 2024', size: '2.1 MB' },
-  ];
+  const [recentReports, setRecentReports] = useState<Report[]>([]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setRecentReports(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error loading reports:', error);
+        setRecentReports([]);
+      }
+    }
+  }, []);
+
+  // Save to localStorage whenever recentReports changes
+  useEffect(() => {
+    if (recentReports.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(recentReports));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [recentReports]);
+
+  const handleDeleteReport = (id: number) => {
+    if (window.confirm('Are you sure you want to delete this report?')) {
+      setRecentReports(recentReports.filter(report => report.id !== id));
+      toast.success('Report deleted successfully');
+    }
+  };
+
+  const handleGenerateReport = (reportType: string) => {
+    const newReport: Report = {
+      id: Date.now(),
+      name: `${reportType} Report - ${new Date().toLocaleDateString()}`,
+      type: reportType,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      size: `${(Math.random() * 3 + 1).toFixed(1)} MB`
+    };
+    
+    setRecentReports([newReport, ...recentReports]);
+    toast.success(`${reportType} report generated successfully`);
+  };
 
   return (
     <div className="space-y-6">
@@ -60,7 +108,7 @@ const Reports: React.FC = () => {
             <Calendar className="h-4 w-4" />
             Schedule Report
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 gap-2">
+          <Button className="bg-blue-600 hover:bg-blue-700 gap-2" onClick={() => handleGenerateReport('Financial')}>
             <FileText className="h-4 w-4" />
             Generate New Report
           </Button>
@@ -80,7 +128,10 @@ const Reports: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-4">{report.description}</p>
-              <Button className="border border-gray-300 bg-transparent hover:bg-gray-100 w-full">
+              <Button 
+                className="border border-gray-300 bg-transparent hover:bg-gray-100 w-full"
+                onClick={() => handleGenerateReport(report.name)}
+              >
                 Generate Report
               </Button>
             </CardContent>
@@ -108,31 +159,43 @@ const Reports: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentReports.map((report) => (
-                <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-gray-100 rounded-lg">
-                      <FileText className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{report.name}</h4>
-                      <div className="flex items-center space-x-3 mt-1">
-                        <span className="text-sm px-2 py-1 bg-gray-100 rounded-full">{report.type}</span>
-                        <span className="text-sm text-gray-500">{report.date}</span>
-                        <span className="text-sm text-gray-500">{report.size}</span>
+              {recentReports.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No reports generated yet. Click "Generate Report" to create one.
+                </div>
+              ) : (
+                recentReports.map((report) => (
+                  <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <FileText className="h-5 w-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{report.name}</h4>
+                        <div className="flex items-center space-x-3 mt-1">
+                          <span className="text-sm px-2 py-1 bg-gray-100 rounded-full">{report.type}</span>
+                          <span className="text-sm text-gray-500">{report.date}</span>
+                          <span className="text-sm text-gray-500">{report.size}</span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <Button className="border-0 bg-transparent hover:bg-gray-100">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button className="border-0 bg-transparent hover:bg-gray-100">
+                        <BarChart3 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        className="border-0 bg-transparent hover:bg-gray-100 text-red-600"
+                        onClick={() => handleDeleteReport(report.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button className="border-0 bg-transparent hover:bg-gray-100">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button className="border-0 bg-transparent hover:bg-gray-100">
-                      <BarChart3 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -148,7 +211,7 @@ const Reports: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Reports Generated</span>
-                    <span className="font-medium">124</span>
+                    <span className="font-medium">{recentReports.length}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Avg. Generation Time</span>
@@ -156,7 +219,7 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Most Popular</span>
-                    <span className="font-medium">Expense Analysis</span>
+                    <span className="font-medium">Financial</span>
                   </div>
                 </div>
               </div>
@@ -206,7 +269,7 @@ const Reports: React.FC = () => {
                   <Button className="border border-gray-300 bg-transparent hover:bg-gray-100">Configure Period</Button>
                   <Button className="border border-gray-300 bg-transparent hover:bg-gray-100">Select Metrics</Button>
                   <Button className="border border-gray-300 bg-transparent hover:bg-gray-100">Add Departments</Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700">Generate Preview</Button>
+                  <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => handleGenerateReport('Financial')}>Generate Preview</Button>
                 </div>
               </div>
             </TabsContent>
