@@ -2,10 +2,9 @@ import { supabase } from '@/lib/supabase';
 
 export interface IncomeCategory {
   id: string;
-  owner_id: string;
+  user_id: string;
   name: string;
   description?: string;
-  department_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -25,7 +24,6 @@ export interface IncomeBreakdown {
 export interface CreateIncomeCategoryInput {
   name: string;
   description?: string;
-  department_id?: string;
 }
 
 export interface CreateIncomeBreakdownInput {
@@ -54,10 +52,9 @@ export async function createIncomeCategory(input: CreateIncomeCategoryInput): Pr
   const { data, error } = await supabase
     .from('app_72505145eb_income_categories')
     .insert({
-      owner_id: user.id,
+      user_id: user.id,
       name: input.name,
       description: input.description,
-      department_id: input.department_id,
     })
     .select()
     .single();

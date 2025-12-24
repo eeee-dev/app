@@ -1,29 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit, Building } from 'lucide-react';
+import { Plus, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { incomeCategoriesService } from '@/services/income-categories';
-import { departmentsService, Department } from '@/services/departments';
-import { IncomeCategory } from '@/lib/incomeCategoryTypes';
+import { incomeCategoriesService, IncomeCategory } from '@/services/income-categories';
 import { toast } from 'sonner';
 
 export const CategoryManager: React.FC = () => {
   const [categories, setCategories] = useState<IncomeCategory[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<IncomeCategory | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    department_id: ''
+    description: ''
   });
 
   useEffect(() => {
@@ -33,12 +27,8 @@ export const CategoryManager: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesData, departmentsData] = await Promise.all([
-        incomeCategoriesService.getAllCategories(),
-        departmentsService.getAll()
-      ]);
+      const categoriesData = await incomeCategoriesService.getAllCategories();
       setCategories(categoriesData);
-      setDepartments(departmentsData);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load categories');
@@ -56,8 +46,7 @@ export const CategoryManager: React.FC = () => {
     try {
       await incomeCategoriesService.createCategory({
         name: formData.name,
-        description: formData.description || undefined,
-        department_id: formData.department_id || undefined
+        description: formData.description || undefined
       });
       
       await loadData();
@@ -79,8 +68,7 @@ export const CategoryManager: React.FC = () => {
     try {
       await incomeCategoriesService.updateCategory(editingCategory.id, {
         name: formData.name,
-        description: formData.description || undefined,
-        department_id: formData.department_id || undefined
+        description: formData.description || undefined
       });
       
       await loadData();
@@ -112,23 +100,15 @@ export const CategoryManager: React.FC = () => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
-      description: category.description || '',
-      department_id: category.department_id || ''
+      description: category.description || ''
     });
   };
 
   const resetForm = () => {
     setFormData({
       name: '',
-      description: '',
-      department_id: ''
+      description: ''
     });
-  };
-
-  const getDepartmentName = (deptId?: string) => {
-    if (!deptId) return 'No department';
-    const dept = departments.find(d => d.id === deptId);
-    return dept?.name || 'Unknown';
   };
 
   if (loading) {
@@ -180,23 +160,6 @@ export const CategoryManager: React.FC = () => {
                   rows={3}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="department">Department (Optional)</Label>
-                <Select
-                  value={formData.department_id}
-                  onValueChange={(value) => setFormData({ ...formData, department_id: value === 'none' ? '' : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No department</SelectItem>
-                    {departments.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -227,7 +190,6 @@ export const CategoryManager: React.FC = () => {
                   <TableRow>
                     <TableHead>Category Name</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Department</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -237,12 +199,6 @@ export const CategoryManager: React.FC = () => {
                       <TableCell className="font-medium">{category.name}</TableCell>
                       <TableCell className="text-gray-600">
                         {category.description || <span className="italic text-gray-400">No description</span>}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building className="h-4 w-4 text-gray-400" />
-                          <span>{getDepartmentName(category.department_id)}</span>
-                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
@@ -285,23 +241,6 @@ export const CategoryManager: React.FC = () => {
                                     placeholder="Brief description of this category"
                                     rows={3}
                                   />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="edit-department">Department (Optional)</Label>
-                                  <Select
-                                    value={formData.department_id}
-                                    onValueChange={(value) => setFormData({ ...formData, department_id: value === 'none' ? '' : value })}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select department" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="none">No department</SelectItem>
-                                      {departments.map(dept => (
-                                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
                                 </div>
                               </div>
                               <DialogFooter>
