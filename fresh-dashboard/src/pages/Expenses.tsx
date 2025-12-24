@@ -181,14 +181,19 @@ const Expenses: React.FC = () => {
 
   const handleCreateExpense = async () => {
     try {
-      if (!newExpense.department_id || !newExpense.description || newExpense.amount <= 0) {
-        toast.error('Please fill in all required fields with valid values.');
+      if (!newExpense.description || newExpense.amount <= 0) {
+        toast.error('Please fill in description and amount with valid values.');
+        return;
+      }
+
+      if (!newExpense.department_id && !newExpense.project_id) {
+        toast.error('Please select at least a department or a project.');
         return;
       }
 
       await expensesService.create({
         id: `exp-${Date.now()}`,
-        department_id: newExpense.department_id,
+        department_id: newExpense.department_id || undefined,
         project_id: newExpense.project_id || undefined,
         description: newExpense.description,
         amount: newExpense.amount,
@@ -248,7 +253,7 @@ const Expenses: React.FC = () => {
         ...filteredExpenses.map(expense => [
           expense.id,
           `"${expense.description.replace(/"/g, '""')}"`,
-          departments.find(d => d.id === expense.department_id)?.name || 'Unknown',
+          expense.department_id ? departments.find(d => d.id === expense.department_id)?.name || 'Unknown' : 'Admin/General',
           expense.project_id ? projects.find(p => p.id === expense.project_id)?.name || 'Unknown Project' : 'Not assigned',
           expense.amount,
           expense.vat_amount,
@@ -281,10 +286,6 @@ const Expenses: React.FC = () => {
   const pendingExpenses = expenses.filter(e => e.status === 'pending').reduce((sum, expense) => sum + expense.total_amount, 0);
   const paidExpenses = expenses.filter(e => e.status === 'paid').reduce((sum, expense) => sum + expense.total_amount, 0);
   const totalVAT = expenses.reduce((sum, expense) => sum + expense.vat_amount, 0);
-
-  const filteredProjects = newExpense.department_id 
-    ? projects.filter(project => project.department_id === newExpense.department_id)
-    : [];
 
   if (loading) {
     return (
@@ -332,26 +333,30 @@ const Expenses: React.FC = () => {
                 <DialogTitle>Add New Expense</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Flexible Assignment:</strong> You can assign this expense to a department, a project, or both. For admin/general costs, leave both unselected.
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="department_id">Department *</Label>
+                    <Label htmlFor="department_id">Department (Optional)</Label>
                     <Select 
                       value={newExpense.department_id} 
-                      onValueChange={(value) => {
-                        handleInputChange('department_id', value);
-                        handleInputChange('project_id', '');
-                      }}
+                      onValueChange={(value) => handleInputChange('department_id', value === 'none' ? '' : value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select department" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">No department (Admin/General)</SelectItem>
                         {departments.length > 0 ? (
                           departments.map(dept => (
                             <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="none" disabled>No departments available</SelectItem>
+                          <SelectItem value="no-dept" disabled>No departments available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -360,15 +365,14 @@ const Expenses: React.FC = () => {
                     <Label htmlFor="project_id">Project (Optional)</Label>
                     <Select 
                       value={newExpense.project_id} 
-                      onValueChange={(value) => handleInputChange('project_id', value)}
-                      disabled={!newExpense.department_id}
+                      onValueChange={(value) => handleInputChange('project_id', value === 'none' ? '' : value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={newExpense.department_id ? "Select project" : "Select department first"} />
+                        <SelectValue placeholder="Select project" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Not assigned to project</SelectItem>
-                        {filteredProjects.map(project => (
+                        <SelectItem value="none">No project</SelectItem>
+                        {projects.map(project => (
                           <SelectItem key={project.id} value={project.id}>
                             {project.code} - {project.name}
                           </SelectItem>
@@ -609,6 +613,17 @@ const Expenses: React.FC = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={projectFilter} onValueChange={setProjectFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All Projects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Projects</SelectItem>
+                    {projects.map(proj => (
+                      <SelectItem key={proj.id} value={proj.id}>{proj.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="All Status" />
@@ -644,6 +659,7 @@ const Expenses: React.FC = () => {
                       <TableRow>
                         <TableHead>Description</TableHead>
                         <TableHead>Department</TableHead>
+                        <TableHead>Project</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>VAT</TableHead>
                         <TableHead>Total</TableHead>
@@ -658,7 +674,16 @@ const Expenses: React.FC = () => {
                         <TableRow key={expense.id}>
                           <TableCell>{expense.description}</TableCell>
                           <TableCell>
-                            {departments.find(d => d.id === expense.department_id)?.name || 'Unknown'}
+                            {expense.department_id 
+                              ? departments.find(d => d.id === expense.department_id)?.name || 'Unknown'
+                              : <span className="text-gray-400 italic">Admin/General</span>
+                            }
+                          </TableCell>
+                          <TableCell>
+                            {expense.project_id 
+                              ? projects.find(p => p.id === expense.project_id)?.name || 'Unknown'
+                              : <span className="text-gray-400 italic">Not assigned</span>
+                            }
                           </TableCell>
                           <TableCell className="font-medium">{formatCurrencyMUR(expense.amount)}</TableCell>
                           <TableCell className="text-purple-600">{formatCurrencyMUR(expense.vat_amount)}</TableCell>

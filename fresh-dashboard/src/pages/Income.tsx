@@ -36,6 +36,8 @@ const IncomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [projectFilter, setProjectFilter] = useState<string>('all');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -84,8 +86,10 @@ const IncomePage: React.FC = () => {
       (income.description && income.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || income.status === statusFilter;
+    const matchesDepartment = departmentFilter === 'all' || income.department_id === departmentFilter;
+    const matchesProject = projectFilter === 'all' || income.project_id === projectFilter;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesDepartment && matchesProject;
   });
 
   const getStatusBadge = (status: string) => {
@@ -134,7 +138,7 @@ const IncomePage: React.FC = () => {
 
   const handleCreateIncome = async () => {
     if (!newIncome.client_name || !newIncome.amount || newIncome.amount <= 0) {
-      toast.error('Please fill in all required fields with valid values.');
+      toast.error('Please fill in client name and amount with valid values.');
       return;
     }
 
@@ -187,7 +191,7 @@ const IncomePage: React.FC = () => {
   };
 
   const handleExportIncomes = () => {
-    const headers = ['Invoice #', 'Client', 'Email', 'Phone', 'Amount', 'Date', 'Status'];
+    const headers = ['Invoice #', 'Client', 'Email', 'Phone', 'Department', 'Project', 'Amount', 'Date', 'Status'];
     const csvContent = [
       headers.join(','),
       ...filteredIncomes.map(income => [
@@ -195,6 +199,8 @@ const IncomePage: React.FC = () => {
         `"${income.client_name}"`,
         income.client_email || '',
         income.client_phone || '',
+        income.department_id ? departments.find(d => d.id === income.department_id)?.name || 'Unknown' : 'Not assigned',
+        income.project_id ? projects.find(p => p.id === income.project_id)?.name || 'Unknown' : 'Not assigned',
         income.amount,
         income.date,
         income.status
@@ -258,6 +264,12 @@ const IncomePage: React.FC = () => {
                 <DialogTitle>Add New Income Record</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Flexible Assignment:</strong> Optionally assign this income to a department and/or project for better tracking.
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="invoice_number">Invoice Number</Label>
@@ -322,6 +334,45 @@ const IncomePage: React.FC = () => {
                       onChange={(e) => handleInputChange('client_address', e.target.value)}
                       placeholder="Enter client address"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="department_id">Department (Optional)</Label>
+                    <Select 
+                      value={newIncome.department_id} 
+                      onValueChange={(value) => handleInputChange('department_id', value === 'none' ? '' : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No department</SelectItem>
+                        {departments.map(dept => (
+                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="project_id">Project (Optional)</Label>
+                    <Select 
+                      value={newIncome.project_id} 
+                      onValueChange={(value) => handleInputChange('project_id', value === 'none' ? '' : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select project" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No project</SelectItem>
+                        {projects.map(project => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.code} - {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 
@@ -437,6 +488,28 @@ const IncomePage: React.FC = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Projects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Projects</SelectItem>
+                  {projects.map(proj => (
+                    <SelectItem key={proj.id} value={proj.id}>{proj.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="All Status" />
@@ -473,6 +546,8 @@ const IncomePage: React.FC = () => {
                         <TableHead>Invoice #</TableHead>
                         <TableHead>Client</TableHead>
                         <TableHead>Contact</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Project</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Status</TableHead>
@@ -498,6 +573,18 @@ const IncomePage: React.FC = () => {
                                 <span className="text-sm">{income.client_phone}</span>
                               </div>
                             )}
+                          </TableCell>
+                          <TableCell>
+                            {income.department_id 
+                              ? departments.find(d => d.id === income.department_id)?.name || 'Unknown'
+                              : <span className="text-gray-400 italic">Not assigned</span>
+                            }
+                          </TableCell>
+                          <TableCell>
+                            {income.project_id 
+                              ? projects.find(p => p.id === income.project_id)?.name || 'Unknown'
+                              : <span className="text-gray-400 italic">Not assigned</span>
+                            }
                           </TableCell>
                           <TableCell className="font-medium">{formatCurrencyMUR(income.amount)}</TableCell>
                           <TableCell>{new Date(income.date).toLocaleDateString()}</TableCell>

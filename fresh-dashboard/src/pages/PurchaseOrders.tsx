@@ -11,81 +11,67 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PlusCircle, Search, Filter, Download, Eye, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrencyMUR } from '@/lib/utils';
-
-interface PurchaseOrder {
-  id: string;
-  poNumber: string;
-  vendor: string;
-  amount: number;
-  date: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed';
-  items: number;
-  description?: string;
-  deliveryDate?: string;
-  contactPerson?: string;
-  contactEmail?: string;
-}
+import { purchaseOrdersService, PurchaseOrder } from '@/services/purchase-orders';
+import { departmentsService, Department } from '@/services/departments';
+import { projectsService, Project } from '@/services/projects';
 
 interface NewPOForm {
-  vendor: string;
+  vendor_name: string;
   amount: number;
   date: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed';
-  items: number;
-  description: string;
-  deliveryDate: string;
-  contactPerson: string;
-  contactEmail: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled';
+  department_id: string;
+  project_id: string;
+  po_number: string;
 }
-
-const STORAGE_KEY = 'purchase_orders_data';
 
 const PurchaseOrders: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setPurchaseOrders(JSON.parse(saved));
-      } catch (error) {
-        console.error('Error loading purchase orders:', error);
-        setPurchaseOrders([]);
-      }
-    }
-  }, []);
-
-  // Save to localStorage whenever purchaseOrders changes
-  useEffect(() => {
-    if (purchaseOrders.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(purchaseOrders));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [purchaseOrders]);
-
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const [newPO, setNewPO] = useState<NewPOForm>({
-    vendor: '',
+    vendor_name: '',
     amount: 0,
     date: new Date().toISOString().split('T')[0],
-    status: 'draft',
-    items: 0,
-    description: '',
-    deliveryDate: '',
-    contactPerson: '',
-    contactEmail: ''
+    status: 'pending',
+    department_id: '',
+    project_id: '',
+    po_number: ''
   });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [posData, departmentsData, projectsData] = await Promise.all([
+        purchaseOrdersService.getAll(),
+        departmentsService.getAll(),
+        projectsService.getAll()
+      ]);
+      setPurchaseOrders(posData);
+      setDepartments(departmentsData);
+      setProjects(projectsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredOrders = purchaseOrders.filter(
     (order) =>
-      order.poNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.vendor.toLowerCase().includes(searchQuery.toLowerCase())
+      order.po_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.vendor_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalAmount = purchaseOrders.reduce((sum, order) => sum + order.amount, 0);
@@ -99,40 +85,45 @@ const PurchaseOrders: React.FC = () => {
     .filter((order) => order.status === 'completed')
     .reduce((sum, order) => sum + order.amount, 0);
 
-  const handleCreatePO = () => {
-    if (!newPO.vendor || newPO.amount <= 0) {
+  const generatePONumber = () => {
+    const year = new Date().getFullYear();
+    const count = purchaseOrders.length + 1;
+    return `PO-${year}-${count.toString().padStart(4, '0')}`;
+  };
+
+  const handleCreatePO = async () => {
+    if (!newPO.vendor_name || newPO.amount <= 0) {
       toast.error('Please fill in vendor name and amount');
       return;
     }
 
-    const createdPO: PurchaseOrder = {
-      id: Date.now().toString(),
-      poNumber: `PO-2024-${(purchaseOrders.length + 1).toString().padStart(3, '0')}`,
-      vendor: newPO.vendor,
-      amount: newPO.amount,
-      date: newPO.date,
-      status: newPO.status,
-      items: newPO.items,
-      description: newPO.description,
-      deliveryDate: newPO.deliveryDate,
-      contactPerson: newPO.contactPerson,
-      contactEmail: newPO.contactEmail
-    };
+    try {
+      await purchaseOrdersService.create({
+        po_number: newPO.po_number || generatePONumber(),
+        vendor_name: newPO.vendor_name,
+        amount: newPO.amount,
+        date: newPO.date,
+        status: newPO.status,
+        department_id: newPO.department_id || undefined,
+        project_id: newPO.project_id || undefined
+      });
 
-    setPurchaseOrders([...purchaseOrders, createdPO]);
-    toast.success('Purchase order created successfully');
-    setIsCreateDialogOpen(false);
-    setNewPO({
-      vendor: '',
-      amount: 0,
-      date: new Date().toISOString().split('T')[0],
-      status: 'draft',
-      items: 0,
-      description: '',
-      deliveryDate: '',
-      contactPerson: '',
-      contactEmail: ''
-    });
+      await loadData();
+      toast.success('Purchase order created successfully');
+      setIsCreateDialogOpen(false);
+      setNewPO({
+        vendor_name: '',
+        amount: 0,
+        date: new Date().toISOString().split('T')[0],
+        status: 'pending',
+        department_id: '',
+        project_id: '',
+        po_number: ''
+      });
+    } catch (error) {
+      console.error('Error creating PO:', error);
+      toast.error('Failed to create purchase order');
+    }
   };
 
   const handleViewPO = (order: PurchaseOrder) => {
@@ -143,81 +134,81 @@ const PurchaseOrders: React.FC = () => {
   const handleEditPO = (order: PurchaseOrder) => {
     setSelectedPO(order);
     setNewPO({
-      vendor: order.vendor,
+      vendor_name: order.vendor_name,
       amount: order.amount,
       date: order.date,
       status: order.status,
-      items: order.items,
-      description: order.description || '',
-      deliveryDate: order.deliveryDate || '',
-      contactPerson: order.contactPerson || '',
-      contactEmail: order.contactEmail || ''
+      department_id: order.department_id || '',
+      project_id: order.project_id || '',
+      po_number: order.po_number
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdatePO = () => {
-    if (!selectedPO || !newPO.vendor || newPO.amount <= 0) {
+  const handleUpdatePO = async () => {
+    if (!selectedPO || !newPO.vendor_name || newPO.amount <= 0) {
       toast.error('Please fill in vendor name and amount');
       return;
     }
 
-    setPurchaseOrders(purchaseOrders.map(po => 
-      po.id === selectedPO.id 
-        ? {
-            ...po,
-            vendor: newPO.vendor,
-            amount: newPO.amount,
-            date: newPO.date,
-            status: newPO.status,
-            items: newPO.items,
-            description: newPO.description,
-            deliveryDate: newPO.deliveryDate,
-            contactPerson: newPO.contactPerson,
-            contactEmail: newPO.contactEmail
-          }
-        : po
-    ));
+    try {
+      await purchaseOrdersService.update(selectedPO.id, {
+        vendor_name: newPO.vendor_name,
+        amount: newPO.amount,
+        date: newPO.date,
+        status: newPO.status,
+        department_id: newPO.department_id || undefined,
+        project_id: newPO.project_id || undefined
+      });
 
-    toast.success('Purchase order updated successfully');
-    setIsEditDialogOpen(false);
-    setSelectedPO(null);
-    setNewPO({
-      vendor: '',
-      amount: 0,
-      date: new Date().toISOString().split('T')[0],
-      status: 'draft',
-      items: 0,
-      description: '',
-      deliveryDate: '',
-      contactPerson: '',
-      contactEmail: ''
-    });
+      await loadData();
+      toast.success('Purchase order updated successfully');
+      setIsEditDialogOpen(false);
+      setSelectedPO(null);
+      setNewPO({
+        vendor_name: '',
+        amount: 0,
+        date: new Date().toISOString().split('T')[0],
+        status: 'pending',
+        department_id: '',
+        project_id: '',
+        po_number: ''
+      });
+    } catch (error) {
+      console.error('Error updating PO:', error);
+      toast.error('Failed to update purchase order');
+    }
   };
 
-  const handleDeletePO = (id: string) => {
+  const handleDeletePO = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this purchase order?')) {
-      setPurchaseOrders(purchaseOrders.filter(po => po.id !== id));
-      toast.success('Purchase order deleted successfully');
-      if (isViewDialogOpen) {
-        setIsViewDialogOpen(false);
+      try {
+        await purchaseOrdersService.delete(id);
+        await loadData();
+        toast.success('Purchase order deleted successfully');
+        if (isViewDialogOpen) {
+          setIsViewDialogOpen(false);
+        }
+      } catch (error) {
+        console.error('Error deleting PO:', error);
+        toast.error('Failed to delete purchase order');
       }
     }
   };
 
   const handleExport = () => {
     try {
-      const headers = ['PO Number', 'Vendor', 'Amount', 'Date', 'Items', 'Status', 'Delivery Date'];
+      const headers = ['PO Number', 'Vendor', 'Amount', 'Date', 'Department', 'Project', 'Status'];
       const csvContent = [
         headers.join(','),
         ...purchaseOrders.map(order => [
-          order.poNumber,
-          `"${order.vendor}"`,
+          order.po_number,
+          `"${order.vendor_name}"`,
           order.amount,
           order.date,
-          order.items,
-          order.status,
-          order.deliveryDate || ''
+          order.department_id ? departments.find(d => d.id === order.department_id)?.name || 'Unknown' : 'Not assigned',
+          order.project_id ? projects.find(p => p.id === order.project_id)?.name || 'Unknown' : 'Not assigned',
+          order.status
         ].join(','))
       ].join('\n');
 
@@ -240,8 +231,6 @@ const PurchaseOrders: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'draft':
-        return <Badge className="border border-gray-300 bg-transparent text-gray-700 hover:bg-gray-100">Draft</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-500 hover:bg-yellow-600">Pending</Badge>;
       case 'approved':
@@ -250,6 +239,8 @@ const PurchaseOrders: React.FC = () => {
         return <Badge className="bg-red-500 hover:bg-red-600">Rejected</Badge>;
       case 'completed':
         return <Badge className="bg-blue-500 hover:bg-blue-600">Completed</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-500 hover:bg-gray-600">Cancelled</Badge>;
       default:
         return <Badge>Unknown</Badge>;
     }
@@ -257,16 +248,34 @@ const PurchaseOrders: React.FC = () => {
 
   const POFormFields = ({ formData, setFormData }: { formData: NewPOForm; setFormData: (data: NewPOForm) => void }) => (
     <>
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+        <p className="text-sm text-blue-800">
+          <strong>Flexible Assignment:</strong> You can assign this PO to a department, a project, or both. For general purchases, leave both unselected.
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="vendor">Vendor Name *</Label>
+          <Label htmlFor="po_number">PO Number</Label>
           <Input
-            id="vendor"
-            value={formData.vendor}
-            onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+            id="po_number"
+            value={formData.po_number}
+            onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
+            placeholder={generatePONumber()}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="vendor_name">Vendor Name *</Label>
+          <Input
+            id="vendor_name"
+            value={formData.vendor_name}
+            onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })}
             placeholder="Enter vendor name"
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="amount">Amount (MUR) *</Label>
           <Input
@@ -279,9 +288,6 @@ const PurchaseOrders: React.FC = () => {
             step="100"
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="date">Order Date *</Label>
           <Input
@@ -291,80 +297,75 @@ const PurchaseOrders: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="deliveryDate">Delivery Date</Label>
-          <Input
-            id="deliveryDate"
-            type="date"
-            value={formData.deliveryDate}
-            onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
-          />
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="items">Number of Items</Label>
-          <Input
-            id="items"
-            type="number"
-            value={formData.items}
-            onChange={(e) => setFormData({ ...formData, items: parseInt(e.target.value) || 0 })}
-            placeholder="0"
-            min="0"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
-          <Select value={formData.status} onValueChange={(value: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed') => setFormData({ ...formData, status: value })}>
+          <Label htmlFor="department_id">Department (Optional)</Label>
+          <Select 
+            value={formData.department_id} 
+            onValueChange={(value) => setFormData({ ...formData, department_id: value === 'none' ? '' : value })}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Select status" />
+              <SelectValue placeholder="Select department" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="none">No department</SelectItem>
+              {departments.map(dept => (
+                <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="project_id">Project (Optional)</Label>
+          <Select 
+            value={formData.project_id} 
+            onValueChange={(value) => setFormData({ ...formData, project_id: value === 'none' ? '' : value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select project" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No project</SelectItem>
+              {projects.map(project => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.code} - {project.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="contactPerson">Contact Person</Label>
-          <Input
-            id="contactPerson"
-            value={formData.contactPerson}
-            onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
-            placeholder="Enter contact name"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="contactEmail">Contact Email</Label>
-          <Input
-            id="contactEmail"
-            type="email"
-            value={formData.contactEmail}
-            onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-            placeholder="email@example.com"
-          />
-        </div>
-      </div>
-
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Enter purchase order description..."
-          rows={3}
-        />
+        <Label htmlFor="status">Status</Label>
+        <Select value={formData.status} onValueChange={(value: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled') => setFormData({ ...formData, status: value })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </>
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading purchase orders...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -488,9 +489,10 @@ const PurchaseOrders: React.FC = () => {
                 <TableRow>
                   <TableHead>PO Number</TableHead>
                   <TableHead>Vendor</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Project</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Items</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -498,11 +500,22 @@ const PurchaseOrders: React.FC = () => {
               <TableBody>
                 {filteredOrders.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.poNumber}</TableCell>
-                    <TableCell>{order.vendor}</TableCell>
+                    <TableCell className="font-medium">{order.po_number}</TableCell>
+                    <TableCell>{order.vendor_name}</TableCell>
+                    <TableCell>
+                      {order.department_id 
+                        ? departments.find(d => d.id === order.department_id)?.name || 'Unknown'
+                        : <span className="text-gray-400 italic">Not assigned</span>
+                      }
+                    </TableCell>
+                    <TableCell>
+                      {order.project_id 
+                        ? projects.find(p => p.id === order.project_id)?.name || 'Unknown'
+                        : <span className="text-gray-400 italic">Not assigned</span>
+                      }
+                    </TableCell>
                     <TableCell>{formatCurrencyMUR(order.amount)}</TableCell>
                     <TableCell>{order.date}</TableCell>
-                    <TableCell>{order.items}</TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -550,7 +563,7 @@ const PurchaseOrders: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-600">PO Number</Label>
-                  <p className="font-medium">{selectedPO.poNumber}</p>
+                  <p className="font-medium">{selectedPO.po_number}</p>
                 </div>
                 <div>
                   <Label className="text-gray-600">Status</Label>
@@ -560,7 +573,7 @@ const PurchaseOrders: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-600">Vendor</Label>
-                  <p className="font-medium">{selectedPO.vendor}</p>
+                  <p className="font-medium">{selectedPO.vendor_name}</p>
                 </div>
                 <div>
                   <Label className="text-gray-600">Amount</Label>
@@ -569,31 +582,27 @@ const PurchaseOrders: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-600">Order Date</Label>
-                  <p className="font-medium">{selectedPO.date}</p>
+                  <Label className="text-gray-600">Department</Label>
+                  <p className="font-medium">
+                    {selectedPO.department_id 
+                      ? departments.find(d => d.id === selectedPO.department_id)?.name || 'Unknown'
+                      : 'Not assigned'
+                    }
+                  </p>
                 </div>
                 <div>
-                  <Label className="text-gray-600">Delivery Date</Label>
-                  <p className="font-medium">{selectedPO.deliveryDate || 'Not specified'}</p>
+                  <Label className="text-gray-600">Project</Label>
+                  <p className="font-medium">
+                    {selectedPO.project_id 
+                      ? projects.find(p => p.id === selectedPO.project_id)?.name || 'Unknown'
+                      : 'Not assigned'
+                    }
+                  </p>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-600">Contact Person</Label>
-                  <p className="font-medium">{selectedPO.contactPerson || 'Not specified'}</p>
-                </div>
-                <div>
-                  <Label className="text-gray-600">Contact Email</Label>
-                  <p className="font-medium">{selectedPO.contactEmail || 'Not specified'}</p>
-                </div>
-              </div>
-              <div>
-                <Label className="text-gray-600">Number of Items</Label>
-                <p className="font-medium">{selectedPO.items}</p>
               </div>
               <div>
-                <Label className="text-gray-600">Description</Label>
-                <p className="font-medium">{selectedPO.description || 'No description provided'}</p>
+                <Label className="text-gray-600">Order Date</Label>
+                <p className="font-medium">{selectedPO.date}</p>
               </div>
             </div>
           )}
