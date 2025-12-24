@@ -99,24 +99,27 @@ const TaxReturn: React.FC = () => {
       const filteredIncome = income.filter(inc => filterByPeriod(inc.date));
 
       // Create VAT records from expenses (Input VAT)
-      const expenseVATRecords: VATRecord[] = filteredExpenses.map(expense => {
-        const dept = departments.find(d => d.id === expense.department_id);
-        const vat = expense.amount * VAT_RATE;
-        
-        return {
-          id: `exp-${expense.id}`,
-          date: expense.date,
-          description: expense.description,
-          category: expense.category || 'General',
-          amount: expense.amount,
-          vat: vat,
-          total: expense.amount + vat,
-          department: dept?.name || 'General',
-          type: 'input' as const
-        };
-      });
+      // USE THE STORED vat_amount FIELD INSTEAD OF CALCULATING
+      const expenseVATRecords: VATRecord[] = filteredExpenses
+        .filter(expense => expense.vat_amount > 0) // Only include expenses with VAT
+        .map(expense => {
+          const dept = departments.find(d => d.id === expense.department_id);
+          
+          return {
+            id: `exp-${expense.id}`,
+            date: expense.date,
+            description: expense.description,
+            category: expense.category || 'General',
+            amount: expense.amount,
+            vat: expense.vat_amount, // Use stored VAT amount
+            total: expense.total_amount,
+            department: dept?.name || 'General',
+            type: 'input' as const
+          };
+        });
 
       // Create VAT records from income (Output VAT)
+      // Calculate 15% VAT on income (assuming all income has VAT)
       const incomeVATRecords: VATRecord[] = filteredIncome.map(inc => {
         const dept = departments.find(d => d.id === inc.department_id);
         const vat = inc.amount * VAT_RATE;
@@ -359,7 +362,7 @@ const TaxReturn: React.FC = () => {
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{formatCurrencyMUR(totalInputVAT)}</div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                  From {vatRecords.filter(r => r.type === 'input').length} transactions
+                  From {vatRecords.filter(r => r.type === 'input').length} VAT-applicable transactions
                 </p>
               </CardContent>
             </Card>
@@ -512,7 +515,7 @@ const TaxReturn: React.FC = () => {
             <CardHeader>
               <CardTitle className="uppercase tracking-wider text-sm">VAT Transaction Records</CardTitle>
               <CardDescription className="text-xs uppercase tracking-wider">
-                All VAT transactions from expenses and income
+                Only expenses with VAT and all income transactions
               </CardDescription>
             </CardHeader>
             <CardContent>
