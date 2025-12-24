@@ -1,263 +1,222 @@
 import { supabase } from '@/lib/supabase';
-import { IncomeCategory, IncomeBreakdown, IncomeBreakdownWithCategory } from '@/lib/incomeCategoryTypes';
 
-const CATEGORIES_TABLE = 'app_72505145eb_income_categories';
-const BREAKDOWNS_TABLE = 'app_72505145eb_income_breakdowns';
-
-interface BreakdownQueryResult {
-  category_id: string;
-  amount: string | number;
-  income_id: string;
-  categories: Array<{
-    name: string;
-    department_id?: string;
-  }>;
-  income: Array<{
-    date: string;
-  }>;
-}
-
-interface CategorySummary {
-  category_id: string;
-  category_name: string;
+export interface IncomeCategory {
+  id: string;
+  owner_id: string;
+  name: string;
+  description?: string;
   department_id?: string;
-  total_amount: number;
-  breakdown_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
-interface DepartmentRevenue {
-  department_id: string;
-  department_name: string;
-  total_revenue: number;
-  category_count: number;
+export interface IncomeBreakdown {
+  id: string;
+  income_id: string;
+  category_id: string;
+  amount: number;
+  percentage?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  category?: IncomeCategory;
 }
 
+export interface CreateIncomeCategoryInput {
+  name: string;
+  description?: string;
+  department_id?: string;
+}
+
+export interface CreateIncomeBreakdownInput {
+  income_id: string;
+  category_id: string;
+  amount: number;
+  percentage?: number;
+  notes?: string;
+}
+
+// Income Categories CRUD
+export async function getIncomeCategories(): Promise<IncomeCategory[]> {
+  const { data, error } = await supabase
+    .from('app_72505145eb_income_categories')
+    .select('*')
+    .order('name');
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createIncomeCategory(input: CreateIncomeCategoryInput): Promise<IncomeCategory> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('app_72505145eb_income_categories')
+    .insert({
+      owner_id: user.id,
+      name: input.name,
+      description: input.description,
+      department_id: input.department_id,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateIncomeCategory(
+  id: string,
+  input: Partial<CreateIncomeCategoryInput>
+): Promise<IncomeCategory> {
+  const { data, error } = await supabase
+    .from('app_72505145eb_income_categories')
+    .update(input)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteIncomeCategory(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('app_72505145eb_income_categories')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// Income Breakdowns CRUD
+export async function getIncomeBreakdowns(incomeId: string): Promise<IncomeBreakdown[]> {
+  const { data, error } = await supabase
+    .from('app_72505145eb_income_breakdowns')
+    .select(`
+      *,
+      category:app_72505145eb_income_categories(*)
+    `)
+    .eq('income_id', incomeId)
+    .order('created_at');
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createIncomeBreakdown(
+  input: CreateIncomeBreakdownInput
+): Promise<IncomeBreakdown> {
+  const { data, error } = await supabase
+    .from('app_72505145eb_income_breakdowns')
+    .insert(input)
+    .select(`
+      *,
+      category:app_72505145eb_income_categories(*)
+    `)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function createMultipleBreakdowns(
+  incomeId: string,
+  breakdowns: Array<{ category_id: string; amount: number; notes?: string }>
+): Promise<IncomeBreakdown[]> {
+  const { data, error } = await supabase
+    .from('app_72505145eb_income_breakdowns')
+    .insert(
+      breakdowns.map(b => ({
+        income_id: incomeId,
+        category_id: b.category_id,
+        amount: b.amount,
+        notes: b.notes,
+      }))
+    )
+    .select(`
+      *,
+      category:app_72505145eb_income_categories(*)
+    `);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updateIncomeBreakdown(
+  id: string,
+  input: Partial<CreateIncomeBreakdownInput>
+): Promise<IncomeBreakdown> {
+  const { data, error } = await supabase
+    .from('app_72505145eb_income_breakdowns')
+    .update(input)
+    .eq('id', id)
+    .select(`
+      *,
+      category:app_72505145eb_income_categories(*)
+    `)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteIncomeBreakdown(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('app_72505145eb_income_breakdowns')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function validateBreakdownTotal(incomeId: string): Promise<{
+  valid: boolean;
+  incomeTotal: number;
+  breakdownTotal: number;
+  remaining: number;
+}> {
+  // Get income total
+  const { data: income, error: incomeError } = await supabase
+    .from('app_72505145eb_enhanced_income')
+    .select('amount')
+    .eq('id', incomeId)
+    .single();
+
+  if (incomeError) throw incomeError;
+
+  // Get breakdown total
+  const { data: breakdowns, error: breakdownError } = await supabase
+    .from('app_72505145eb_income_breakdowns')
+    .select('amount')
+    .eq('income_id', incomeId);
+
+  if (breakdownError) throw breakdownError;
+
+  const incomeTotal = income?.amount || 0;
+  const breakdownTotal = breakdowns?.reduce((sum, b) => sum + Number(b.amount), 0) || 0;
+  const remaining = incomeTotal - breakdownTotal;
+
+  return {
+    valid: breakdownTotal <= incomeTotal,
+    incomeTotal,
+    breakdownTotal,
+    remaining,
+  };
+}
+
+// Export service object for backward compatibility
 export const incomeCategoriesService = {
-  // ============ Income Categories ============
-  
-  async getAllCategories(): Promise<IncomeCategory[]> {
-    const { data, error } = await supabase
-      .from(CATEGORIES_TABLE)
-      .select('*')
-      .order('name', { ascending: true });
-    
-    if (error) throw error;
-    return data || [];
-  },
-
-  async getCategoryById(id: string): Promise<IncomeCategory | null> {
-    const { data, error } = await supabase
-      .from(CATEGORIES_TABLE)
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
-
-  async createCategory(category: Omit<IncomeCategory, 'id' | 'created_at' | 'updated_at'>): Promise<IncomeCategory> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const categoryData = {
-      ...category,
-      user_id: user?.id
-    };
-
-    const { data, error } = await supabase
-      .from(CATEGORIES_TABLE)
-      .insert([categoryData])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
-
-  async updateCategory(id: string, category: Partial<IncomeCategory>): Promise<IncomeCategory> {
-    const { data, error } = await supabase
-      .from(CATEGORIES_TABLE)
-      .update({ ...category, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
-
-  async deleteCategory(id: string): Promise<void> {
-    const { error } = await supabase
-      .from(CATEGORIES_TABLE)
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
-  },
-
-  // ============ Income Breakdowns ============
-
-  async getBreakdownsByIncomeId(incomeId: string): Promise<IncomeBreakdownWithCategory[]> {
-    const { data, error } = await supabase
-      .from(BREAKDOWNS_TABLE)
-      .select(`
-        *,
-        categories:category_id (
-          name,
-          description,
-          department_id
-        )
-      `)
-      .eq('income_id', incomeId)
-      .order('created_at', { ascending: true });
-    
-    if (error) throw error;
-    return data || [];
-  },
-
-  async createBreakdown(breakdown: Omit<IncomeBreakdown, 'id' | 'created_at' | 'updated_at'>): Promise<IncomeBreakdown> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const breakdownData = {
-      ...breakdown,
-      user_id: user?.id
-    };
-
-    const { data, error } = await supabase
-      .from(BREAKDOWNS_TABLE)
-      .insert([breakdownData])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
-
-  async createMultipleBreakdowns(
-    incomeId: string, 
-    breakdowns: Array<{ category_id: string; amount: number; notes?: string }>
-  ): Promise<IncomeBreakdown[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const breakdownsData = breakdowns.map(b => ({
-      income_id: incomeId,
-      category_id: b.category_id,
-      amount: b.amount,
-      notes: b.notes,
-      user_id: user?.id
-    }));
-
-    const { data, error } = await supabase
-      .from(BREAKDOWNS_TABLE)
-      .insert(breakdownsData)
-      .select();
-    
-    if (error) throw error;
-    return data || [];
-  },
-
-  async updateBreakdown(id: string, breakdown: Partial<IncomeBreakdown>): Promise<IncomeBreakdown> {
-    const { data, error } = await supabase
-      .from(BREAKDOWNS_TABLE)
-      .update({ ...breakdown, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
-
-  async deleteBreakdown(id: string): Promise<void> {
-    const { error } = await supabase
-      .from(BREAKDOWNS_TABLE)
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
-  },
-
-  async deleteAllBreakdownsForIncome(incomeId: string): Promise<void> {
-    const { error } = await supabase
-      .from(BREAKDOWNS_TABLE)
-      .delete()
-      .eq('income_id', incomeId);
-    
-    if (error) throw error;
-  },
-
-  // ============ Analytics & Reporting ============
-
-  async getCategoryBreakdownSummary(startDate?: string, endDate?: string): Promise<CategorySummary[]> {
-    let query = supabase
-      .from(BREAKDOWNS_TABLE)
-      .select(`
-        category_id,
-        amount,
-        income_id,
-        categories:category_id (
-          name,
-          department_id
-        ),
-        income:income_id (
-          date
-        )
-      `);
-
-    if (startDate) {
-      query = query.gte('income.date', startDate);
-    }
-    if (endDate) {
-      query = query.lte('income.date', endDate);
-    }
-
-    const { data, error } = await query;
-    
-    if (error) throw error;
-
-    // Aggregate by category
-    const summaryMap: Record<string, CategorySummary> = {};
-    
-    (data || []).forEach((breakdown: BreakdownQueryResult) => {
-      const categoryId = breakdown.category_id;
-      const categoryInfo = breakdown.categories && breakdown.categories.length > 0 ? breakdown.categories[0] : null;
-      
-      if (!summaryMap[categoryId]) {
-        summaryMap[categoryId] = {
-          category_id: categoryId,
-          category_name: categoryInfo?.name || 'Unknown',
-          department_id: categoryInfo?.department_id,
-          total_amount: 0,
-          breakdown_count: 0
-        };
-      }
-      summaryMap[categoryId].total_amount += parseFloat(breakdown.amount.toString());
-      summaryMap[categoryId].breakdown_count += 1;
-    });
-
-    return Object.values(summaryMap);
-  },
-
-  async getDepartmentRevenueByCategoryBreakdown(startDate?: string, endDate?: string): Promise<DepartmentRevenue[]> {
-    const summary = await this.getCategoryBreakdownSummary(startDate, endDate);
-    
-    // Group by department
-    const deptRevenueMap: Record<string, DepartmentRevenue> = {};
-    
-    summary.forEach((item: CategorySummary) => {
-      const deptId = item.department_id || 'unassigned';
-      if (!deptRevenueMap[deptId]) {
-        deptRevenueMap[deptId] = {
-          department_id: deptId,
-          department_name: deptId === 'unassigned' ? 'Unassigned' : deptId,
-          total_revenue: 0,
-          category_count: 0
-        };
-      }
-      deptRevenueMap[deptId].total_revenue += item.total_amount;
-      deptRevenueMap[deptId].category_count += 1;
-    });
-
-    return Object.values(deptRevenueMap);
-  }
+  getAllCategories: getIncomeCategories,
+  createCategory: createIncomeCategory,
+  updateCategory: updateIncomeCategory,
+  deleteCategory: deleteIncomeCategory,
+  getBreakdowns: getIncomeBreakdowns,
+  getBreakdownsByIncomeId: getIncomeBreakdowns, // Alias for compatibility
+  createBreakdown: createIncomeBreakdown,
+  createMultipleBreakdowns,
+  updateBreakdown: updateIncomeBreakdown,
+  deleteBreakdown: deleteIncomeBreakdown,
+  validateBreakdownTotal,
 };
