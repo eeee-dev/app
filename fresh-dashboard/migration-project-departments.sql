@@ -14,17 +14,26 @@ CREATE TABLE IF NOT EXISTS app_72505145eb_project_departments (
   UNIQUE(project_id, department_id)
 );
 
--- Step 2: Make department_id optional in expenses table (allow NULL for admin costs)
+-- Step 2: Add project_id column to purchase_orders table (if it doesn't exist)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'app_72505145eb_purchase_orders' 
+    AND column_name = 'project_id'
+  ) THEN
+    ALTER TABLE app_72505145eb_purchase_orders 
+      ADD COLUMN project_id UUID REFERENCES app_72505145eb_projects(id);
+  END IF;
+END $$;
+
+-- Step 3: Make department_id optional in expenses table (allow NULL for admin costs)
 ALTER TABLE app_72505145eb_expenses 
   ALTER COLUMN department_id DROP NOT NULL;
 
--- Step 3: Make department_id optional in purchase_orders table (allow NULL for admin costs)
+-- Step 4: Make department_id optional in purchase_orders table (allow NULL for admin costs)
 ALTER TABLE app_72505145eb_purchase_orders 
   ALTER COLUMN department_id DROP NOT NULL;
-
--- Step 4: Remove the old single department_id from projects table
--- (Keep it for now for backward compatibility, but it's no longer the primary relationship)
--- Projects now link to departments through the junction table
 
 -- Step 5: Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_project_departments_project ON app_72505145eb_project_departments(project_id);
