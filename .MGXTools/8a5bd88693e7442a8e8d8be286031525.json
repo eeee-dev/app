@@ -2,7 +2,7 @@
     "tabs": {
         "00": {
             "tab_id": "00",
-            "cwd": "/workspace/fresh-dashboard",
+            "cwd": "/workspace/fresh-dashboard/dist",
             "observer": {
                 "block": "Terminal",
                 "uuid": "fa67fd5d-78c8-4964-8c44-0f1cd11f3445",
