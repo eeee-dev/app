@@ -152,38 +152,38 @@ const Settings: React.FC = () => {
     try {
       setLoadingMembers(true);
       
-      if (!supabase) {
-        throw new Error('Supabase not initialized');
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Not authenticated');
       }
 
-      const { data: { users }, error } = await supabase.auth.admin.listUsers();
+      // Show only the current user as a team member
+      // Admin API calls require service role key and should be done via Edge Functions
+      const member: TeamMember = {
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || 'Current User',
+        role: user.user_metadata?.role || 'admin',
+        department: user.user_metadata?.department || 'finance',
+        status: 'active',
+        last_sign_in: user.last_sign_in_at || undefined,
+        created_at: user.created_at || new Date().toISOString()
+      };
 
-      if (error) throw error;
-
-      const members: TeamMember[] = users.map(user => {
-        const status: 'active' | 'invited' | 'inactive' = user.email_confirmed_at ? 'active' : 'invited';
-        return {
-          id: user.id,
-          email: user.email || '',
-          full_name: user.user_metadata?.full_name || 'Unknown',
-          role: user.user_metadata?.role || 'viewer',
-          department: user.user_metadata?.department || 'Not assigned',
-          status,
-          last_sign_in: user.last_sign_in_at || undefined,
-          created_at: user.created_at
-        };
-      });
-
-      setTeamMembers(members);
+      setTeamMembers([member]);
+      
     } catch (error) {
       console.error('Error loading team members:', error);
-      toast.error('Failed to load team members');
+      toast.info('Team management requires admin privileges. Showing your account only.');
       
+      // Fallback to showing a default user
       setTeamMembers([
         {
           id: '1',
           email: 'd@eeee.mu',
-          full_name: 'Admin User',
+          full_name: 'Current User',
           role: 'admin',
           department: 'finance',
           status: 'active',
@@ -197,83 +197,16 @@ const Settings: React.FC = () => {
   };
 
   const handleInviteMember = async () => {
-    try {
-      if (!newMember.email || !newMember.full_name) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
-
-      if (!supabase) {
-        throw new Error('Supabase not initialized');
-      }
-
-      const { error } = await supabase.auth.admin.inviteUserByEmail(newMember.email, {
-        data: {
-          full_name: newMember.full_name,
-          role: newMember.role,
-          department: newMember.department
-        },
-        redirectTo: `${window.location.origin}/dashboard`
-      });
-
-      if (error) throw error;
-
-      toast.success(`Invitation sent to ${newMember.email}`);
-      setIsInviteDialogOpen(false);
-      setNewMember({
-        email: '',
-        full_name: '',
-        role: 'viewer',
-        department: 'finance'
-      });
-      
-      await loadTeamMembers();
-    } catch (error) {
-      console.error('Error inviting member:', error);
-      toast.error('Failed to send invitation');
-    }
+    toast.info('Team invitations require admin API access. Please contact your system administrator to invite new members.');
+    setIsInviteDialogOpen(false);
   };
 
   const handleUpdateMemberRole = async (userId: string, newRole: string) => {
-    try {
-      if (!supabase) {
-        throw new Error('Supabase not initialized');
-      }
-
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: { role: newRole }
-      });
-
-      if (error) throw error;
-
-      toast.success('Member role updated successfully');
-      await loadTeamMembers();
-    } catch (error) {
-      console.error('Error updating member role:', error);
-      toast.error('Failed to update member role');
-    }
+    toast.info('Role updates require admin API access. Please contact your system administrator.');
   };
 
   const handleRemoveMember = async (userId: string, email: string) => {
-    if (!window.confirm(`Are you sure you want to remove ${email} from the team?`)) {
-      return;
-    }
-
-    try {
-      if (!supabase) {
-        throw new Error('Supabase not initialized');
-      }
-
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-
-      if (error) throw error;
-
-      toast.success('Member removed successfully');
-      await loadTeamMembers();
-    } catch (error) {
-      console.error('Error removing member:', error);
-      toast.error('Failed to remove member');
-    }
+    toast.info('Member removal requires admin API access. Please contact your system administrator.');
   };
 
   const handleSaveProfile = () => {
@@ -671,7 +604,7 @@ const Settings: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Team Members</CardTitle>
-                  <CardDescription>Manage team members and their access permissions</CardDescription>
+                  <CardDescription>Team management requires admin API access via Edge Functions</CardDescription>
                 </div>
                 <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
                   <DialogTrigger asChild>
@@ -684,63 +617,14 @@ const Settings: React.FC = () => {
                     <DialogHeader>
                       <DialogTitle>Invite Team Member</DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="member-email">Email Address *</Label>
-                        <Input
-                          id="member-email"
-                          type="email"
-                          placeholder="member@example.com"
-                          value={newMember.email}
-                          onChange={(e) => setNewMember({...newMember, email: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="member-name">Full Name *</Label>
-                        <Input
-                          id="member-name"
-                          placeholder="John Doe"
-                          value={newMember.full_name}
-                          onChange={(e) => setNewMember({...newMember, full_name: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="member-role">Role</Label>
-                        <Select value={newMember.role} onValueChange={(value) => setNewMember({...newMember, role: value})}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Administrator</SelectItem>
-                            <SelectItem value="manager">Department Manager</SelectItem>
-                            <SelectItem value="accountant">Accountant</SelectItem>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="member-department">Department</Label>
-                        <Select value={newMember.department} onValueChange={(value) => setNewMember({...newMember, department: value})}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="finance">Finance</SelectItem>
-                            <SelectItem value="musique">musiquë</SelectItem>
-                            <SelectItem value="musique">ë • musique</SelectItem>
-                            <SelectItem value="boucan">bōucan</SelectItem>
-                            <SelectItem value="talent">talënt</SelectItem>
-                            <SelectItem value="moris">mōris</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="py-4">
+                      <p className="text-sm text-gray-600">
+                        Team invitations require admin API access. Please contact your system administrator to set up an Edge Function for secure team management.
+                      </p>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handleInviteMember}>
-                        Send Invitation
+                        Close
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -763,7 +647,6 @@ const Settings: React.FC = () => {
                       <TableHead>Department</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Last Sign In</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -787,25 +670,6 @@ const Settings: React.FC = () => {
                             ? new Date(member.last_sign_in).toLocaleDateString()
                             : 'Never'
                           }
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-                              onClick={() => {
-                                const newRole = prompt('Enter new role (admin, manager, accountant, viewer):');
-                                if (newRole) handleUpdateMemberRole(member.id, newRole);
-                              }}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600"
-                              onClick={() => handleRemoveMember(member.id, member.email)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
