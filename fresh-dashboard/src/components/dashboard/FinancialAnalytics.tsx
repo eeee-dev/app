@@ -1,36 +1,140 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, TrendingDown, DollarSign, PieChart, BarChart3, LineChart } from 'lucide-react';
 import { formatCurrencyMUR } from '@/lib/utils';
+import { expensesService } from '@/services/expenses';
+import { incomeService } from '@/services/income';
+import { departmentsService } from '@/services/departments';
+import { toast } from 'sonner';
 
 interface FinancialAnalyticsProps {
   className?: string;
 }
 
-const FinancialAnalytics = ({ className }: FinancialAnalyticsProps) => {
-  // Mock data for analytics
-  const cashFlowData = [
-    { month: 'Jan', income: 1250000, expenses: 980000 },
-    { month: 'Feb', income: 1320000, expenses: 1050000 },
-    { month: 'Mar', income: 1410000, expenses: 1120000 },
-    { month: 'Apr', income: 1280000, expenses: 990000 },
-    { month: 'May', income: 1350000, expenses: 1010000 },
-    { month: 'Jun', income: 1480000, expenses: 1180000 },
-  ];
+interface MonthlyData {
+  month: string;
+  income: number;
+  expenses: number;
+}
 
-  const departmentPerformance = [
-    { department: 'mōris', revenue: 850000, expenses: 420000, profit: 430000 },
-    { department: 'ë', revenue: 620000, expenses: 310000, profit: 310000 },
-    { department: 'ëx', revenue: 480000, expenses: 250000, profit: 230000 },
-    { department: 'ëy', revenue: 320000, expenses: 180000, profit: 140000 },
-  ];
+interface DepartmentPerformance {
+  department: string;
+  revenue: number;
+  expenses: number;
+  profit: number;
+}
+
+const FinancialAnalytics = ({ className }: FinancialAnalyticsProps) => {
+  const [cashFlowData, setCashFlowData] = useState<MonthlyData[]>([]);
+  const [departmentPerformance, setDepartmentPerformance] = useState<DepartmentPerformance[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all data from Supabase
+        const [expenses, income, departments] = await Promise.all([
+          expensesService.getAll(),
+          incomeService.getAll(),
+          departmentsService.getAll()
+        ]);
+
+        // Calculate monthly cash flow for the last 6 months
+        const now = new Date();
+        const monthlyData: MonthlyData[] = [];
+        
+        for (let i = 5; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthName = date.toLocaleString('default', { month: 'short' });
+          const year = date.getFullYear();
+          const month = date.getMonth() + 1;
+          
+          // Filter expenses and income for this month
+          const monthExpenses = expenses.filter(exp => {
+            const expDate = new Date(exp.date);
+            return expDate.getMonth() + 1 === month && expDate.getFullYear() === year;
+          });
+          
+          const monthIncome = income.filter(inc => {
+            const incDate = new Date(inc.date);
+            return incDate.getMonth() + 1 === month && incDate.getFullYear() === year;
+          });
+          
+          const totalExpenses = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+          const totalIncome = monthIncome.reduce((sum, inc) => sum + inc.amount, 0);
+          
+          monthlyData.push({
+            month: monthName,
+            income: totalIncome,
+            expenses: totalExpenses
+          });
+        }
+        
+        setCashFlowData(monthlyData);
+
+        // Calculate department performance
+        const deptPerformance: DepartmentPerformance[] = departments.map(dept => {
+          // Get expenses for this department
+          const deptExpenses = expenses.filter(exp => exp.department_id === dept.id);
+          const totalExpenses = deptExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+          
+          // Get income for this department
+          const deptIncome = income.filter(inc => inc.department_id === dept.id);
+          const totalRevenue = deptIncome.reduce((sum, inc) => sum + inc.amount, 0);
+          
+          return {
+            department: dept.name,
+            revenue: totalRevenue,
+            expenses: totalExpenses,
+            profit: totalRevenue - totalExpenses
+          };
+        }).filter(dept => dept.revenue > 0 || dept.expenses > 0); // Only show departments with activity
+
+        setDepartmentPerformance(deptPerformance);
+        
+      } catch (error) {
+        console.error('Error fetching analytics data:', error);
+        toast.error('Failed to load analytics data');
+        
+        // Set empty data on error
+        setCashFlowData([]);
+        setDepartmentPerformance([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalyticsData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className={className}>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Calculate profit & loss data from real data
+  const totalRevenue = cashFlowData.reduce((sum, month) => sum + month.income, 0);
+  const totalExpenses = cashFlowData.reduce((sum, month) => sum + month.expenses, 0);
+  const grossProfit = totalRevenue - totalExpenses;
+  const operatingExpenses = totalExpenses * 0.6; // Estimate 60% as operating expenses
+  const netProfit = grossProfit - operatingExpenses;
 
   const profitLossData = [
-    { category: 'Revenue', amount: 2270000 },
-    { category: 'Cost of Goods', amount: 1160000 },
-    { category: 'Gross Profit', amount: 1110000 },
-    { category: 'Operating Expenses', amount: 680000 },
-    { category: 'Net Profit', amount: 430000 },
+    { category: 'Revenue', amount: totalRevenue },
+    { category: 'Cost of Goods', amount: totalExpenses * 0.4 },
+    { category: 'Gross Profit', amount: grossProfit },
+    { category: 'Operating Expenses', amount: operatingExpenses },
+    { category: 'Net Profit', amount: netProfit },
   ];
 
   const calculateTrend = (current: number, previous: number) => {
@@ -38,11 +142,35 @@ const FinancialAnalytics = ({ className }: FinancialAnalyticsProps) => {
     return ((current - previous) / previous) * 100;
   };
 
-  const latestMonth = cashFlowData[cashFlowData.length - 1];
-  const previousMonth = cashFlowData[cashFlowData.length - 2];
+  const latestMonth = cashFlowData[cashFlowData.length - 1] || { month: '', income: 0, expenses: 0 };
+  const previousMonth = cashFlowData[cashFlowData.length - 2] || { month: '', income: 0, expenses: 0 };
   const incomeTrend = calculateTrend(latestMonth.income, previousMonth.income);
   const expenseTrend = calculateTrend(latestMonth.expenses, previousMonth.expenses);
   const netCashFlow = latestMonth.income - latestMonth.expenses;
+
+  // Show message if no data
+  if (cashFlowData.length === 0 && departmentPerformance.length === 0) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Financial Analytics
+          </CardTitle>
+          <CardDescription>Detailed financial analysis and insights</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12">
+            <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Data Available</h3>
+            <p className="text-muted-foreground">
+              Start adding expenses and income to see financial analytics here.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={className}>
@@ -51,7 +179,7 @@ const FinancialAnalytics = ({ className }: FinancialAnalyticsProps) => {
           <BarChart3 className="h-5 w-5" />
           Financial Analytics
         </CardTitle>
-        <CardDescription>Detailed financial analysis and insights</CardDescription>
+        <CardDescription>Detailed financial analysis and insights from real data</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="cashflow" className="w-full">
@@ -124,7 +252,7 @@ const FinancialAnalytics = ({ className }: FinancialAnalyticsProps) => {
               <div className="space-y-2">
                 {cashFlowData.map((month, index) => {
                   const netFlow = month.income - month.expenses;
-                  const maxIncome = Math.max(...cashFlowData.map(m => m.income));
+                  const maxIncome = Math.max(...cashFlowData.map(m => m.income), 1);
                   const incomeWidth = (month.income / maxIncome) * 100;
                   const expenseWidth = (month.expenses / maxIncome) * 100;
 
@@ -178,13 +306,13 @@ const FinancialAnalytics = ({ className }: FinancialAnalyticsProps) => {
                 <div className="text-center p-4 bg-green-500/10 rounded-lg">
                   <p className="text-sm text-muted-foreground">Gross Margin</p>
                   <p className="text-2xl font-bold text-green-500">
-                    {((profitLossData[2].amount / profitLossData[0].amount) * 100).toFixed(1)}%
+                    {totalRevenue > 0 ? ((profitLossData[2].amount / profitLossData[0].amount) * 100).toFixed(1) : '0.0'}%
                   </p>
                 </div>
                 <div className="text-center p-4 bg-blue-500/10 rounded-lg">
                   <p className="text-sm text-muted-foreground">Net Margin</p>
                   <p className="text-2xl font-bold text-blue-500">
-                    {((profitLossData[4].amount / profitLossData[0].amount) * 100).toFixed(1)}%
+                    {totalRevenue > 0 ? ((profitLossData[4].amount / profitLossData[0].amount) * 100).toFixed(1) : '0.0'}%
                   </p>
                 </div>
               </div>
@@ -192,54 +320,64 @@ const FinancialAnalytics = ({ className }: FinancialAnalyticsProps) => {
           </TabsContent>
 
           <TabsContent value="departments" className="space-y-4">
-            <div className="space-y-4">
-              {departmentPerformance.map((dept, index) => (
-                <Card key={index}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="font-medium">{dept.department}</p>
-                        <p className="text-sm text-muted-foreground">Department Performance</p>
-                      </div>
-                      <div className={`text-lg font-bold ${dept.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {formatCurrencyMUR(dept.profit)}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Revenue</span>
-                        <span className="text-green-500">{formatCurrencyMUR(dept.revenue)}</span>
-                      </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-green-500" 
-                          style={{ width: `${(dept.revenue / Math.max(...departmentPerformance.map(d => d.revenue))) * 100}%` }}
-                        />
+            {departmentPerformance.length === 0 ? (
+              <div className="text-center py-12">
+                <PieChart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Department Data</h3>
+                <p className="text-muted-foreground">
+                  Assign expenses and income to departments to see performance metrics.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {departmentPerformance.map((dept, index) => (
+                  <Card key={index}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-medium">{dept.department}</p>
+                          <p className="text-sm text-muted-foreground">Department Performance</p>
+                        </div>
+                        <div className={`text-lg font-bold ${dept.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {formatCurrencyMUR(dept.profit)}
+                        </div>
                       </div>
                       
-                      <div className="flex justify-between text-sm">
-                        <span>Expenses</span>
-                        <span className="text-red-500">{formatCurrencyMUR(dept.expenses)}</span>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Revenue</span>
+                          <span className="text-green-500">{formatCurrencyMUR(dept.revenue)}</span>
+                        </div>
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-green-500" 
+                            style={{ width: `${dept.revenue > 0 ? (dept.revenue / Math.max(...departmentPerformance.map(d => d.revenue))) * 100 : 0}%` }}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-between text-sm">
+                          <span>Expenses</span>
+                          <span className="text-red-500">{formatCurrencyMUR(dept.expenses)}</span>
+                        </div>
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-red-500" 
+                            style={{ width: `${dept.expenses > 0 ? (dept.expenses / Math.max(...departmentPerformance.map(d => d.expenses))) * 100 : 0}%` }}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-between text-sm font-medium pt-2 border-t">
+                          <span>Profit Margin</span>
+                          <span className={dept.profit >= 0 ? 'text-green-500' : 'text-red-500'}>
+                            {dept.revenue > 0 ? ((dept.profit / dept.revenue) * 100).toFixed(1) : '0.0'}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-red-500" 
-                          style={{ width: `${(dept.expenses / Math.max(...departmentPerformance.map(d => d.expenses))) * 100}%` }}
-                        />
-                      </div>
-                      
-                      <div className="flex justify-between text-sm font-medium pt-2 border-t">
-                        <span>Profit Margin</span>
-                        <span className={dept.profit >= 0 ? 'text-green-500' : 'text-red-500'}>
-                          {((dept.profit / dept.revenue) * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>
