@@ -1,5 +1,5 @@
 {
-  "timeline_index": 345,
+  "timeline_index": 347,
   "planner": {},
   "gallery_last_file": {},
   "timeline_status": {
@@ -346,7 +346,9 @@
     "342": 1,
     "343": 1,
     "344": 1,
-    "345": 1
+    "345": 1,
+    "346": 1,
+    "347": 1
   },
   "preview_servers": {},
   "preview_server": {
