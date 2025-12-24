@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Filter, Download, Search, Eye, Trash2, Mail, CheckCircle, Clock, Building, Briefcase, Mail as MailIcon, Phone, MapPin, Scan } from 'lucide-react';
+import { Plus, Download, Search, Trash2, CheckCircle, Mail as MailIcon, Phone, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { incomeService, Income } from '@/services/income';
 import { departmentsService, Department } from '@/services/departments';
 import { projectsService, Project } from '@/services/projects';
+import { incomeCategoriesService } from '@/services/income-categories';
+import { IncomeCategory, IncomeBreakdownWithCategory } from '@/lib/incomeCategoryTypes';
+import { CategoryBreakdownForm, BreakdownItem } from '@/components/income/CategoryBreakdownForm';
+import { CategoryManager } from '@/components/income/CategoryManager';
+import { BreakdownViewer } from '@/components/income/BreakdownViewer';
 import { formatCurrencyMUR } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -29,6 +34,7 @@ interface NewIncomeForm {
   due_date: string;
   status: string;
   description: string;
+  breakdowns: BreakdownItem[];
 }
 
 const IncomePage: React.FC = () => {
@@ -40,7 +46,10 @@ const IncomePage: React.FC = () => {
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [categories, setCategories] = useState<IncomeCategory[]>([]);
+  const [incomeBreakdowns, setIncomeBreakdowns] = useState<Record<string, IncomeBreakdownWithCategory[]>>({});
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('incomes');
   const [newIncome, setNewIncome] = useState<NewIncomeForm>({
     invoice_number: `INC-${Date.now().toString().slice(-6)}`,
     client_name: '',
@@ -53,7 +62,8 @@ const IncomePage: React.FC = () => {
     date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     status: 'pending',
-    description: ''
+    description: '',
+    breakdowns: []
   });
 
   useEffect(() => {
@@ -63,14 +73,28 @@ const IncomePage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [incomesData, departmentsData, projectsData] = await Promise.all([
+      const [incomesData, departmentsData, projectsData, categoriesData] = await Promise.all([
         incomeService.getAll(),
         departmentsService.getAll(),
-        projectsService.getAll()
+        projectsService.getAll(),
+        incomeCategoriesService.getAllCategories()
       ]);
       setIncomes(incomesData);
       setDepartments(departmentsData);
       setProjects(projectsData);
+      setCategories(categoriesData);
+
+      // Load breakdowns for all incomes
+      const breakdownsMap: Record<string, IncomeBreakdownWithCategory[]> = {};
+      await Promise.all(
+        incomesData.map(async (income) => {
+          const breakdowns = await incomeCategoriesService.getBreakdownsByIncomeId(income.id);
+          if (breakdowns.length > 0) {
+            breakdownsMap[income.id] = breakdowns;
+          }
+        })
+      );
+      setIncomeBreakdowns(breakdownsMap);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
@@ -124,7 +148,7 @@ const IncomePage: React.FC = () => {
   };
 
   const handleDeleteIncome = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this income record?')) {
+    if (window.confirm('Are you sure you want to delete this income record? This will also delete all category breakdowns.')) {
       try {
         await incomeService.delete(id);
         await loadData();
@@ -142,8 +166,23 @@ const IncomePage: React.FC = () => {
       return;
     }
 
+    // Validate breakdowns if provided
+    if (newIncome.breakdowns.length > 0) {
+      const totalBreakdown = newIncome.breakdowns.reduce((sum, b) => sum + b.amount, 0);
+      if (totalBreakdown > newIncome.amount) {
+        toast.error('Total breakdown amount exceeds the income amount');
+        return;
+      }
+      
+      const hasInvalidBreakdown = newIncome.breakdowns.some(b => !b.category_id || b.amount <= 0);
+      if (hasInvalidBreakdown) {
+        toast.error('Please complete all breakdown entries or remove empty ones');
+        return;
+      }
+    }
+
     try {
-      await incomeService.create({
+      const createdIncome = await incomeService.create({
         invoice_number: newIncome.invoice_number,
         client_name: newIncome.client_name,
         client_email: newIncome.client_email,
@@ -157,6 +196,18 @@ const IncomePage: React.FC = () => {
         status: newIncome.status as 'pending' | 'received' | 'overdue' | 'cancelled',
         description: newIncome.description
       });
+
+      // Create breakdowns if provided
+      if (newIncome.breakdowns.length > 0) {
+        await incomeCategoriesService.createMultipleBreakdowns(
+          createdIncome.id,
+          newIncome.breakdowns.map(b => ({
+            category_id: b.category_id,
+            amount: b.amount,
+            notes: b.notes
+          }))
+        );
+      }
 
       await loadData();
       
@@ -172,7 +223,8 @@ const IncomePage: React.FC = () => {
         date: new Date().toISOString().split('T')[0],
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: 'pending',
-        description: ''
+        description: '',
+        breakdowns: []
       });
 
       setIsCreateDialogOpen(false);
@@ -183,7 +235,7 @@ const IncomePage: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: keyof NewIncomeForm, value: string | number) => {
+  const handleInputChange = (field: keyof NewIncomeForm, value: string | number | BreakdownItem[]) => {
     setNewIncome(prev => ({
       ...prev,
       [field]: value
@@ -241,7 +293,7 @@ const IncomePage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Income Management</h1>
-          <p className="text-gray-600 mt-1">Track and manage all income sources</p>
+          <p className="text-gray-600 mt-1">Track and manage all income sources with category breakdowns</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button 
@@ -259,166 +311,174 @@ const IncomePage: React.FC = () => {
                 Add Income
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Income Record</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <p className="text-sm text-blue-800">
-                    <strong>Flexible Assignment:</strong> Optionally assign this income to a department and/or project for better tracking.
-                  </p>
-                </div>
+              <div className="grid gap-6 py-4">
+                {/* Basic Info */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Basic Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invoice_number">Invoice Number</Label>
+                      <Input
+                        id="invoice_number"
+                        value={newIncome.invoice_number}
+                        onChange={(e) => handleInputChange('invoice_number', e.target.value)}
+                        placeholder="INC-001"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">Amount (MUR) *</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        value={newIncome.amount}
+                        onChange={(e) => handleInputChange('amount', parseFloat(e.target.value) || 0)}
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="client_name">Client Name *</Label>
+                      <Input
+                        id="client_name"
+                        value={newIncome.client_name}
+                        onChange={(e) => handleInputChange('client_name', e.target.value)}
+                        placeholder="Enter client name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="client_email">Client Email</Label>
+                      <Input
+                        id="client_email"
+                        type="email"
+                        value={newIncome.client_email}
+                        onChange={(e) => handleInputChange('client_email', e.target.value)}
+                        placeholder="client@example.com"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="client_phone">Client Phone</Label>
+                      <Input
+                        id="client_phone"
+                        value={newIncome.client_phone}
+                        onChange={(e) => handleInputChange('client_phone', e.target.value)}
+                        placeholder="+230 123 4567"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="client_address">Client Address</Label>
+                      <Input
+                        id="client_address"
+                        value={newIncome.client_address}
+                        onChange={(e) => handleInputChange('client_address', e.target.value)}
+                        placeholder="Enter client address"
+                      />
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="invoice_number">Invoice Number</Label>
-                    <Input
-                      id="invoice_number"
-                      value={newIncome.invoice_number}
-                      onChange={(e) => handleInputChange('invoice_number', e.target.value)}
-                      placeholder="INC-001"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="department_id">Department (Optional)</Label>
+                      <Select 
+                        value={newIncome.department_id} 
+                        onValueChange={(value) => handleInputChange('department_id', value === 'none' ? '' : value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No department</SelectItem>
+                          {departments.map(dept => (
+                            <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="project_id">Project (Optional)</Label>
+                      <Select 
+                        value={newIncome.project_id} 
+                        onValueChange={(value) => handleInputChange('project_id', value === 'none' ? '' : value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No project</SelectItem>
+                          {projects.map(project => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.code} - {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Amount (MUR) *</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      value={newIncome.amount}
-                      onChange={(e) => handleInputChange('amount', parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                    />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Income Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={newIncome.date}
+                        onChange={(e) => handleInputChange('date', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="due_date">Due Date</Label>
+                      <Input
+                        id="due_date"
+                        type="date"
+                        value={newIncome.due_date}
+                        onChange={(e) => handleInputChange('due_date', e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="client_name">Client Name *</Label>
-                    <Input
-                      id="client_name"
-                      value={newIncome.client_name}
-                      onChange={(e) => handleInputChange('client_name', e.target.value)}
-                      placeholder="Enter client name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="client_email">Client Email</Label>
-                    <Input
-                      id="client_email"
-                      type="email"
-                      value={newIncome.client_email}
-                      onChange={(e) => handleInputChange('client_email', e.target.value)}
-                      placeholder="client@example.com"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="client_phone">Client Phone</Label>
-                    <Input
-                      id="client_phone"
-                      value={newIncome.client_phone}
-                      onChange={(e) => handleInputChange('client_phone', e.target.value)}
-                      placeholder="+230 123 4567"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="client_address">Client Address</Label>
-                    <Input
-                      id="client_address"
-                      value={newIncome.client_address}
-                      onChange={(e) => handleInputChange('client_address', e.target.value)}
-                      placeholder="Enter client address"
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="department_id">Department (Optional)</Label>
-                    <Select 
-                      value={newIncome.department_id} 
-                      onValueChange={(value) => handleInputChange('department_id', value === 'none' ? '' : value)}
-                    >
+                    <Label htmlFor="status">Status</Label>
+                    <Select value={newIncome.status} onValueChange={(value) => handleInputChange('status', value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
+                        <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">No department</SelectItem>
-                        {departments.map(dept => (
-                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                        ))}
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="received">Received</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="project_id">Project (Optional)</Label>
-                    <Select 
-                      value={newIncome.project_id} 
-                      onValueChange={(value) => handleInputChange('project_id', value === 'none' ? '' : value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select project" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No project</SelectItem>
-                        {projects.map(project => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.code} - {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Income Date</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={newIncome.date}
-                      onChange={(e) => handleInputChange('date', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="due_date">Due Date</Label>
-                    <Input
-                      id="due_date"
-                      type="date"
-                      value={newIncome.due_date}
-                      onChange={(e) => handleInputChange('due_date', e.target.value)}
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newIncome.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      placeholder="Enter income description or notes..."
+                      rows={3}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={newIncome.status} onValueChange={(value) => handleInputChange('status', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="received">Received</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newIncome.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Enter income description or notes..."
-                    rows={3}
+                {/* Category Breakdown */}
+                <div className="border-t pt-6">
+                  <CategoryBreakdownForm
+                    totalAmount={newIncome.amount}
+                    categories={categories}
+                    breakdowns={newIncome.breakdowns}
+                    onChange={(breakdowns) => handleInputChange('breakdowns', breakdowns)}
                   />
                 </div>
               </div>
@@ -474,157 +534,177 @@ const IncomePage: React.FC = () => {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle>All Income Records</CardTitle>
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input 
-                  placeholder="Search incomes..." 
-                  className="w-full md:w-64 pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="incomes">Income Records</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="incomes" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <CardTitle>All Income Records</CardTitle>
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input 
+                      placeholder="Search incomes..." 
+                      className="w-full md:w-64 pl-10"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map(dept => (
+                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={projectFilter} onValueChange={setProjectFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Projects" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Projects</SelectItem>
+                      {projects.map(proj => (
+                        <SelectItem key={proj.id} value={proj.id}>{proj.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="received">Received</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map(dept => (
-                    <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={projectFilter} onValueChange={setProjectFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Projects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
-                  {projects.map(proj => (
-                    <SelectItem key={proj.id} value={proj.id}>{proj.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="received">Received</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all">
-            <TabsList>
-              <TabsTrigger value="all">All Incomes</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="overdue">Overdue</TabsTrigger>
-              <TabsTrigger value="received">Received</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="mt-6">
+            </CardHeader>
+            <CardContent>
               {filteredIncomes.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">No income records found</div>
                   <p className="text-gray-500">Try adjusting your filters or add a new income record</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead>Project</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredIncomes.map((income) => (
-                        <TableRow key={income.id}>
-                          <TableCell className="font-medium">{income.invoice_number}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{income.client_name}</span>
-                              {income.client_email && (
-                                <span className="text-xs text-gray-500">{income.client_email}</span>
+                <div className="space-y-4">
+                  {filteredIncomes.map((income) => (
+                    <Card key={income.id} className="border-l-4 border-l-blue-500">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">{income.invoice_number}</h3>
+                              {getStatusBadge(income.status)}
+                              {incomeBreakdowns[income.id] && (
+                                <Badge variant="outline" className="gap-1">
+                                  <Tag className="h-3 w-3" />
+                                  {incomeBreakdowns[income.id].length} categories
+                                </Badge>
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            {income.client_phone && (
-                              <div className="flex items-center space-x-1">
-                                <Phone className="h-3 w-3 text-gray-500" />
-                                <span className="text-sm">{income.client_phone}</span>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div>
+                                <p className="text-gray-500">Client</p>
+                                <p className="font-medium">{income.client_name}</p>
+                                {income.client_email && (
+                                  <p className="text-xs text-gray-500">{income.client_email}</p>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Amount</p>
+                                <p className="font-bold text-lg">{formatCurrencyMUR(income.amount)}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Date</p>
+                                <p className="font-medium">{new Date(income.date).toLocaleDateString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Due Date</p>
+                                <p className="font-medium">{income.due_date ? new Date(income.due_date).toLocaleDateString() : 'N/A'}</p>
+                              </div>
+                            </div>
+                            {(income.department_id || income.project_id) && (
+                              <div className="flex gap-4 mt-3 text-sm">
+                                {income.department_id && (
+                                  <div className="flex items-center gap-1 text-gray-600">
+                                    <span className="font-medium">Dept:</span>
+                                    <span>{departments.find(d => d.id === income.department_id)?.name || 'Unknown'}</span>
+                                  </div>
+                                )}
+                                {income.project_id && (
+                                  <div className="flex items-center gap-1 text-gray-600">
+                                    <span className="font-medium">Project:</span>
+                                    <span>{projects.find(p => p.id === income.project_id)?.name || 'Unknown'}</span>
+                                  </div>
+                                )}
                               </div>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            {income.department_id 
-                              ? departments.find(d => d.id === income.department_id)?.name || 'Unknown'
-                              : <span className="text-gray-400 italic">Not assigned</span>
-                            }
-                          </TableCell>
-                          <TableCell>
-                            {income.project_id 
-                              ? projects.find(p => p.id === income.project_id)?.name || 'Unknown'
-                              : <span className="text-gray-400 italic">Not assigned</span>
-                            }
-                          </TableCell>
-                          <TableCell className="font-medium">{formatCurrencyMUR(income.amount)}</TableCell>
-                          <TableCell>{new Date(income.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{getStatusBadge(income.status)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end space-x-2">
-                              {income.client_email && (
-                                <Button 
-                                  className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
-                                  onClick={() => handleSendReminder(income.id, income.client_name, income.client_email || '')}
-                                >
-                                  <MailIcon className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {income.status === 'pending' && (
-                                <Button 
-                                  className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-green-600"
-                                  onClick={() => handleUpdateStatus(income.id, 'received')}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                              )}
+                          </div>
+                          <div className="flex gap-2">
+                            {income.client_email && (
                               <Button 
-                                className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600"
-                                onClick={() => handleDeleteIncome(income.id)}
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleSendReminder(income.id, income.client_name, income.client_email || '')}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <MailIcon className="h-4 w-4" />
                               </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                            )}
+                            {income.status === 'pending' && (
+                              <Button 
+                                size="icon"
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700"
+                                onClick={() => handleUpdateStatus(income.id, 'received')}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button 
+                              size="icon"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteIncome(income.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {incomeBreakdowns[income.id] && (
+                          <div className="mt-4 pt-4 border-t">
+                            <BreakdownViewer
+                              breakdowns={incomeBreakdowns[income.id]}
+                              departments={departments}
+                              totalAmount={income.amount}
+                            />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="categories" className="mt-6">
+          <CategoryManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
