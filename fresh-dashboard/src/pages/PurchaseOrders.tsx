@@ -10,31 +10,16 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-
-interface PurchaseOrder {
-  id: string;
-  po_number: string;
-  supplier_name: string;
-  supplier_email: string;
-  order_date: string;
-  expected_delivery: string;
-  status: 'draft' | 'pending' | 'approved' | 'received' | 'cancelled';
-  total_amount: number;
-  currency: string;
-  items: PurchaseOrderItem[];
-  notes?: string;
-  created_by: string;
-  created_at: string;
-}
-
-interface PurchaseOrderItem {
-  id: string;
-  description: string;
-  quantity: number;
-  unit_price: number;
-  total: number;
-}
+import {
+  getPurchaseOrders,
+  createPurchaseOrder,
+  updatePurchaseOrderStatus,
+  deletePurchaseOrder,
+  getPurchaseOrderStats,
+  type PurchaseOrder,
+  type PurchaseOrderItem,
+  type CreatePurchaseOrderData
+} from '@/services/purchase-orders';
 
 interface NewPurchaseOrder {
   supplier_name: string;
@@ -54,6 +39,15 @@ const PurchaseOrders: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    draft: 0,
+    pending: 0,
+    approved: 0,
+    received: 0,
+    cancelled: 0,
+    totalValue: 0
+  });
   const [newPO, setNewPO] = useState<NewPurchaseOrder>({
     supplier_name: '',
     supplier_email: '',
@@ -61,98 +55,33 @@ const PurchaseOrders: React.FC = () => {
     expected_delivery: '',
     currency: 'MUR',
     notes: '',
-    items: [{ id: '1', description: '', quantity: 1, unit_price: 0, total: 0 }]
+    items: [{ description: '', quantity: 1, unit_price: 0, total: 0 }]
   });
 
   useEffect(() => {
     loadPurchaseOrders();
+    loadStats();
   }, []);
 
   const loadPurchaseOrders = async () => {
     try {
       setLoading(true);
-      
-      // For now, use mock data since we haven't created the database table yet
-      // In production, this would query Supabase
-      const mockData: PurchaseOrder[] = [
-        {
-          id: '1',
-          po_number: 'PO-2024-001',
-          supplier_name: 'Office Supplies Ltd',
-          supplier_email: 'sales@officesupplies.mu',
-          order_date: '2024-01-15',
-          expected_delivery: '2024-01-25',
-          status: 'approved',
-          total_amount: 15000,
-          currency: 'MUR',
-          items: [
-            { id: '1', description: 'Office Chairs (Ergonomic)', quantity: 10, unit_price: 1200, total: 12000 },
-            { id: '2', description: 'Standing Desks', quantity: 5, unit_price: 600, total: 3000 }
-          ],
-          notes: 'Urgent delivery required for new office setup',
-          created_by: 'd@eeee.mu',
-          created_at: '2024-01-15T10:00:00Z'
-        },
-        {
-          id: '2',
-          po_number: 'PO-2024-002',
-          supplier_name: 'Tech Solutions Mauritius',
-          supplier_email: 'orders@techsolutions.mu',
-          order_date: '2024-01-18',
-          expected_delivery: '2024-02-01',
-          status: 'pending',
-          total_amount: 45000,
-          currency: 'MUR',
-          items: [
-            { id: '1', description: 'Laptops (Dell XPS 15)', quantity: 3, unit_price: 15000, total: 45000 }
-          ],
-          notes: 'Awaiting approval from finance department',
-          created_by: 'd@eeee.mu',
-          created_at: '2024-01-18T14:30:00Z'
-        },
-        {
-          id: '3',
-          po_number: 'PO-2024-003',
-          supplier_name: 'Catering Services Plus',
-          supplier_email: 'info@cateringplus.mu',
-          order_date: '2024-01-20',
-          expected_delivery: '2024-01-22',
-          status: 'received',
-          total_amount: 8500,
-          currency: 'MUR',
-          items: [
-            { id: '1', description: 'Corporate Event Catering (50 pax)', quantity: 1, unit_price: 8500, total: 8500 }
-          ],
-          created_by: 'd@eeee.mu',
-          created_at: '2024-01-20T09:00:00Z'
-        },
-        {
-          id: '4',
-          po_number: 'PO-2024-004',
-          supplier_name: 'Marketing Materials Co',
-          supplier_email: 'print@marketing.mu',
-          order_date: '2024-01-22',
-          expected_delivery: '2024-02-05',
-          status: 'draft',
-          total_amount: 12000,
-          currency: 'MUR',
-          items: [
-            { id: '1', description: 'Business Cards (Premium)', quantity: 1000, unit_price: 5, total: 5000 },
-            { id: '2', description: 'Brochures (A4, Full Color)', quantity: 500, unit_price: 14, total: 7000 }
-          ],
-          notes: 'Draft - awaiting final design approval',
-          created_by: 'd@eeee.mu',
-          created_at: '2024-01-22T11:00:00Z'
-        }
-      ];
-
-      setPurchaseOrders(mockData);
-      
+      const data = await getPurchaseOrders();
+      setPurchaseOrders(data);
     } catch (error) {
       console.error('Error loading purchase orders:', error);
       toast.error('Failed to load purchase orders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const data = await getPurchaseOrderStats();
+      setStats(data);
+    } catch (error) {
+      console.error('Error loading stats:', error);
     }
   };
 
@@ -168,27 +97,23 @@ const PurchaseOrders: React.FC = () => {
     }
 
     try {
-      const totalAmount = newPO.items.reduce((sum, item) => sum + item.total, 0);
-      const poNumber = `PO-${new Date().getFullYear()}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
-
-      const newPurchaseOrder: PurchaseOrder = {
-        id: Date.now().toString(),
-        po_number: poNumber,
+      const createData: CreatePurchaseOrderData = {
         supplier_name: newPO.supplier_name,
         supplier_email: newPO.supplier_email,
         order_date: newPO.order_date,
         expected_delivery: newPO.expected_delivery,
-        status: 'draft',
-        total_amount: totalAmount,
         currency: newPO.currency,
-        items: newPO.items,
         notes: newPO.notes,
-        created_by: 'd@eeee.mu',
-        created_at: new Date().toISOString()
+        items: newPO.items.map(({ description, quantity, unit_price, total }) => ({
+          description,
+          quantity,
+          unit_price,
+          total
+        }))
       };
 
-      setPurchaseOrders([newPurchaseOrder, ...purchaseOrders]);
-      toast.success(`Purchase Order ${poNumber} created successfully!`);
+      const createdPO = await createPurchaseOrder(createData);
+      toast.success(`Purchase Order ${createdPO.po_number} created successfully!`);
       
       // Reset form
       setNewPO({
@@ -198,10 +123,14 @@ const PurchaseOrders: React.FC = () => {
         expected_delivery: '',
         currency: 'MUR',
         notes: '',
-        items: [{ id: '1', description: '', quantity: 1, unit_price: 0, total: 0 }]
+        items: [{ description: '', quantity: 1, unit_price: 0, total: 0 }]
       });
       
       setIsCreateDialogOpen(false);
+      
+      // Reload data
+      await loadPurchaseOrders();
+      await loadStats();
       
     } catch (error) {
       console.error('Error creating purchase order:', error);
@@ -211,7 +140,6 @@ const PurchaseOrders: React.FC = () => {
 
   const handleAddItem = () => {
     const newItem: PurchaseOrderItem = {
-      id: Date.now().toString(),
       description: '',
       quantity: 1,
       unit_price: 0,
@@ -220,15 +148,16 @@ const PurchaseOrders: React.FC = () => {
     setNewPO({ ...newPO, items: [...newPO.items, newItem] });
   };
 
-  const handleRemoveItem = (itemId: string) => {
+  const handleRemoveItem = (index: number) => {
     if (newPO.items.length > 1) {
-      setNewPO({ ...newPO, items: newPO.items.filter(item => item.id !== itemId) });
+      const updatedItems = newPO.items.filter((_, i) => i !== index);
+      setNewPO({ ...newPO, items: updatedItems });
     }
   };
 
-  const handleItemChange = (itemId: string, field: keyof PurchaseOrderItem, value: string | number) => {
-    const updatedItems = newPO.items.map(item => {
-      if (item.id === itemId) {
+  const handleItemChange = (index: number, field: keyof PurchaseOrderItem, value: string | number) => {
+    const updatedItems = newPO.items.map((item, i) => {
+      if (i === index) {
         const updatedItem = { ...item, [field]: value };
         if (field === 'quantity' || field === 'unit_price') {
           updatedItem.total = updatedItem.quantity * updatedItem.unit_price;
@@ -242,10 +171,10 @@ const PurchaseOrders: React.FC = () => {
 
   const handleUpdateStatus = async (poId: string, newStatus: PurchaseOrder['status']) => {
     try {
-      setPurchaseOrders(purchaseOrders.map(po => 
-        po.id === poId ? { ...po, status: newStatus } : po
-      ));
+      await updatePurchaseOrderStatus(poId, newStatus);
       toast.success(`Purchase order status updated to ${newStatus}`);
+      await loadPurchaseOrders();
+      await loadStats();
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Failed to update status');
@@ -255,8 +184,10 @@ const PurchaseOrders: React.FC = () => {
   const handleDeletePO = async (poId: string, poNumber: string) => {
     if (window.confirm(`Are you sure you want to delete ${poNumber}?`)) {
       try {
-        setPurchaseOrders(purchaseOrders.filter(po => po.id !== poId));
+        await deletePurchaseOrder(poId);
         toast.success('Purchase order deleted successfully');
+        await loadPurchaseOrders();
+        await loadStats();
       } catch (error) {
         console.error('Error deleting purchase order:', error);
         toast.error('Failed to delete purchase order');
@@ -304,13 +235,6 @@ const PurchaseOrders: React.FC = () => {
   });
 
   const totalAmount = filteredPurchaseOrders.reduce((sum, po) => sum + po.total_amount, 0);
-  const statusCounts = {
-    draft: purchaseOrders.filter(po => po.status === 'draft').length,
-    pending: purchaseOrders.filter(po => po.status === 'pending').length,
-    approved: purchaseOrders.filter(po => po.status === 'approved').length,
-    received: purchaseOrders.filter(po => po.status === 'received').length,
-    cancelled: purchaseOrders.filter(po => po.status === 'cancelled').length
-  };
 
   return (
     <div className="space-y-6">
@@ -398,13 +322,13 @@ const PurchaseOrders: React.FC = () => {
                 </div>
                 
                 {newPO.items.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-2 items-end p-4 border rounded-lg">
+                  <div key={index} className="grid grid-cols-12 gap-2 items-end p-4 border rounded-lg">
                     <div className="col-span-5 space-y-2">
                       <Label>Description</Label>
                       <Input
                         placeholder="Item description"
                         value={item.description}
-                        onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
+                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                       />
                     </div>
                     <div className="col-span-2 space-y-2">
@@ -413,7 +337,7 @@ const PurchaseOrders: React.FC = () => {
                         type="number"
                         min="1"
                         value={item.quantity}
-                        onChange={(e) => handleItemChange(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
                       />
                     </div>
                     <div className="col-span-2 space-y-2">
@@ -423,7 +347,7 @@ const PurchaseOrders: React.FC = () => {
                         min="0"
                         step="0.01"
                         value={item.unit_price}
-                        onChange={(e) => handleItemChange(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
                       />
                     </div>
                     <div className="col-span-2 space-y-2">
@@ -440,7 +364,7 @@ const PurchaseOrders: React.FC = () => {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveItem(item.id)}
+                        onClick={() => handleRemoveItem(index)}
                         disabled={newPO.items.length === 1}
                       >
                         <Trash2 className="h-4 w-4 text-red-600" />
@@ -489,7 +413,7 @@ const PurchaseOrders: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Draft</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.draft}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.draft}</p>
               </div>
               <Edit2 className="h-8 w-8 text-gray-400" />
             </div>
@@ -500,7 +424,7 @@ const PurchaseOrders: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">{statusCounts.pending}</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-400" />
             </div>
@@ -511,7 +435,7 @@ const PurchaseOrders: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Approved</p>
-                <p className="text-2xl font-bold text-blue-600">{statusCounts.approved}</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.approved}</p>
               </div>
               <Check className="h-8 w-8 text-blue-400" />
             </div>
@@ -522,7 +446,7 @@ const PurchaseOrders: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Received</p>
-                <p className="text-2xl font-bold text-green-600">{statusCounts.received}</p>
+                <p className="text-2xl font-bold text-green-600">{stats.received}</p>
               </div>
               <Check className="h-8 w-8 text-green-400" />
             </div>
@@ -533,7 +457,7 @@ const PurchaseOrders: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Value</p>
-                <p className="text-2xl font-bold text-gray-900">₨{totalAmount.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">₨{stats.totalValue.toLocaleString()}</p>
               </div>
               <ShoppingCart className="h-8 w-8 text-gray-400" />
             </div>
@@ -648,7 +572,7 @@ const PurchaseOrders: React.FC = () => {
                         </Button>
                         <Select
                           value={po.status}
-                          onValueChange={(value) => handleUpdateStatus(po.id, value as PurchaseOrder['status'])}
+                          onValueChange={(value) => po.id && handleUpdateStatus(po.id, value as PurchaseOrder['status'])}
                         >
                           <SelectTrigger className="h-8 w-32">
                             <SelectValue />
@@ -664,7 +588,7 @@ const PurchaseOrders: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDeletePO(po.id, po.po_number)}
+                          onClick={() => po.id && handleDeletePO(po.id, po.po_number)}
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
@@ -728,8 +652,8 @@ const PurchaseOrders: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedPO.items.map((item) => (
-                      <TableRow key={item.id}>
+                    {selectedPO.items.map((item, index) => (
+                      <TableRow key={item.id || index}>
                         <TableCell>{item.description}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>{selectedPO.currency} {item.unit_price.toFixed(2)}</TableCell>
