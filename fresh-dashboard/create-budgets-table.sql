@@ -1,7 +1,10 @@
+-- Drop the table if it exists to start fresh
+DROP TABLE IF EXISTS app_72505145eb_budgets CASCADE;
+
 BEGIN;
 
 -- Create budgets table
-CREATE TABLE IF NOT EXISTS app_72505145eb_budgets (
+CREATE TABLE app_72505145eb_budgets (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users NOT NULL,
   department_id TEXT REFERENCES app_72505145eb_departments(id) NOT NULL,
@@ -15,10 +18,10 @@ CREATE TABLE IF NOT EXISTS app_72505145eb_budgets (
   UNIQUE(user_id, department_id, fiscal_year, quarter)
 );
 
--- Create index for faster queries
-CREATE INDEX IF NOT EXISTS idx_budgets_user ON app_72505145eb_budgets(user_id);
-CREATE INDEX IF NOT EXISTS idx_budgets_department ON app_72505145eb_budgets(department_id);
-CREATE INDEX IF NOT EXISTS idx_budgets_fiscal_year ON app_72505145eb_budgets(fiscal_year);
+-- Create indexes for faster queries
+CREATE INDEX idx_budgets_user ON app_72505145eb_budgets(user_id);
+CREATE INDEX idx_budgets_department ON app_72505145eb_budgets(department_id);
+CREATE INDEX idx_budgets_fiscal_year ON app_72505145eb_budgets(fiscal_year);
 
 -- Enable Row Level Security
 ALTER TABLE app_72505145eb_budgets ENABLE ROW LEVEL SECURITY;
