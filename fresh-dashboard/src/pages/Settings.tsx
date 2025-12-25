@@ -72,6 +72,7 @@ const Settings: React.FC = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
   const [newMember, setNewMember] = useState<NewMemberForm>({
     email: '',
     full_name: '',
@@ -160,7 +161,6 @@ const Settings: React.FC = () => {
       }
 
       // Show only the current user as a team member
-      // Admin API calls require service role key and should be done via Edge Functions
       const member: TeamMember = {
         id: user.id,
         email: user.email || '',
@@ -197,8 +197,66 @@ const Settings: React.FC = () => {
   };
 
   const handleInviteMember = async () => {
-    toast.info('Team invitations require admin API access. Please contact your system administrator to invite new members.');
-    setIsInviteDialogOpen(false);
+    if (!newMember.email || !newMember.full_name) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsInviting(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('You must be logged in to invite members');
+        return;
+      }
+
+      // Call the Edge Function to invite the member
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/app_72505145eb_invite_member`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            email: newMember.email,
+            full_name: newMember.full_name,
+            role: newMember.role,
+            department: newMember.department
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send invitation');
+      }
+
+      toast.success(`Invitation sent to ${newMember.email}! They will receive an email to join the team.`);
+      
+      // Reset form
+      setNewMember({
+        email: '',
+        full_name: '',
+        role: 'viewer',
+        department: 'finance'
+      });
+      
+      setIsInviteDialogOpen(false);
+      
+      // Reload team members
+      await loadTeamMembers();
+      
+    } catch (error) {
+      console.error('Error inviting member:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send invitation. Please try again.');
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   const handleUpdateMemberRole = async (userId: string, newRole: string) => {
@@ -604,7 +662,7 @@ const Settings: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Team Members</CardTitle>
-                  <CardDescription>Team management requires admin API access via Edge Functions</CardDescription>
+                  <CardDescription>Invite and manage team members with email invitations</CardDescription>
                 </div>
                 <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
                   <DialogTrigger asChild>
@@ -617,14 +675,79 @@ const Settings: React.FC = () => {
                     <DialogHeader>
                       <DialogTitle>Invite Team Member</DialogTitle>
                     </DialogHeader>
-                    <div className="py-4">
-                      <p className="text-sm text-gray-600">
-                        Team invitations require admin API access. Please contact your system administrator to set up an Edge Function for secure team management.
-                      </p>
+                    <div className="grid gap-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-email">Email Address *</Label>
+                        <Input
+                          id="invite-email"
+                          type="email"
+                          placeholder="colleague@example.com"
+                          value={newMember.email}
+                          onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                          disabled={isInviting}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-name">Full Name *</Label>
+                        <Input
+                          id="invite-name"
+                          placeholder="John Doe"
+                          value={newMember.full_name}
+                          onChange={(e) => setNewMember({...newMember, full_name: e.target.value})}
+                          disabled={isInviting}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-role">Role</Label>
+                        <Select 
+                          value={newMember.role}
+                          onValueChange={(value) => setNewMember({...newMember, role: value})}
+                          disabled={isInviting}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Administrator</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="accountant">Accountant</SelectItem>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-department">Department</Label>
+                        <Select 
+                          value={newMember.department}
+                          onValueChange={(value) => setNewMember({...newMember, department: value})}
+                          disabled={isInviting}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="finance">Finance</SelectItem>
+                            <SelectItem value="musique">musiquë</SelectItem>
+                            <SelectItem value="boucan">bōucan</SelectItem>
+                            <SelectItem value="talent">talënt</SelectItem>
+                            <SelectItem value="moris">mōris</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                        Close
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsInviteDialogOpen(false)}
+                        disabled={isInviting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleInviteMember}
+                        disabled={isInviting || !newMember.email || !newMember.full_name}
+                      >
+                        {isInviting ? 'Sending...' : 'Send Invitation'}
                       </Button>
                     </DialogFooter>
                   </DialogContent>

@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -33,18 +33,22 @@ const navigation = [
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="flex h-screen w-64 flex-col border-r border-white/10 bg-black">
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-white/10 px-6">
-        <Link to="/dashboard" className="flex items-center space-x-3">
+        <button 
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+        >
           <div className="text-2xl font-bold text-primary">ë</div>
           <div className="flex flex-col">
             <span className="text-xs uppercase tracking-wider text-white">Financial Dashboard</span>
             <span className="text-[10px] text-muted-foreground">2025</span>
           </div>
-        </Link>
+        </button>
       </div>
 
       {/* Navigation */}
@@ -57,7 +61,7 @@ const Sidebar = () => {
               key={item.name}
               to={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                'flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200 rounded-sm',
                 isActive
                   ? 'bg-primary/10 text-primary border-l-2 border-primary'
                   : 'text-muted-foreground hover:bg-primary/5 hover:text-primary border-l-2 border-transparent'
@@ -75,7 +79,7 @@ const Sidebar = () => {
         <Link
           to="/settings"
           className={cn(
-            'flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200',
+            'flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200 rounded-sm',
             location.pathname === '/settings'
               ? 'bg-primary/10 text-primary border-l-2 border-primary'
               : 'text-muted-foreground hover:bg-primary/5 hover:text-primary border-l-2 border-transparent'

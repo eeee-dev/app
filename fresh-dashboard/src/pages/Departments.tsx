@@ -452,7 +452,7 @@ const Departments: React.FC = () => {
                   {departments.map((dept) => {
                     const utilization = dept.budget > 0 ? (dept.spent / dept.budget) * 100 : 0;
                     return (
-                      <div key={dept.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div key={dept.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-orange-50 hover:border-orange-500 transition-all duration-200">
                         <div className="flex items-center space-x-4">
                           <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
                             <Users className="h-6 w-6 text-gray-600" />
@@ -483,19 +483,19 @@ const Departments: React.FC = () => {
                           </div>
                           <div className="mt-2 flex justify-end space-x-2">
                             <Button 
-                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
+                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-orange-50 hover:border-orange-500 text-gray-700 hover:text-orange-600 transition-all duration-200"
                               onClick={() => toast.info(`Viewing department: ${dept.name}`)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button 
-                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
+                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-orange-50 hover:border-orange-500 text-gray-700 hover:text-orange-600 transition-all duration-200"
                               onClick={() => toast.info(`Editing department: ${dept.name}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button 
-                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600 hover:text-red-700"
+                              className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-red-50 hover:border-red-500 text-red-600 hover:text-red-700 transition-all duration-200"
                               onClick={() => handleDeleteDepartment(dept.id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -516,19 +516,19 @@ const Departments: React.FC = () => {
               <CardContent>
                 <div className="space-y-3">
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-orange-50 hover:border-orange-500 text-gray-700 hover:text-orange-600 transition-all duration-200"
                     onClick={() => toast.info('Opening department analytics dashboard')}
                   >
                     View Department Analytics
                   </Button>
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-orange-50 hover:border-orange-500 text-gray-700 hover:text-orange-600 transition-all duration-200"
                     onClick={() => toast.info('Opening budget adjustment interface')}
                   >
                     Adjust Budget Allocation
                   </Button>
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-orange-50 hover:border-orange-500 text-gray-700 hover:text-orange-600 transition-all duration-200"
                     onClick={() => toast.info('Opening team management interface')}
                   >
                     Manage Team Members
