@@ -181,4 +181,4 @@ For deployment issues:
 
 ---
 
-**Built with ❤️ using React 19, TypeScript, Vite 6, and Supabase**
+**Built with ❤️ using React 19, TypeScript, Vite 6, and Supabase**Testing auto-deployment
