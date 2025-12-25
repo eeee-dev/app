@@ -75,11 +75,45 @@ export const incomeService = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Verify the record exists and belongs to the user
+    const { data: existingRecord, error: fetchError } = await supabase
+      .from(TABLE_NAME)
+      .select('id, user_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      throw new Error('Income record not found');
+    }
+
+    if (existingRecord.user_id !== user.id) {
+      throw new Error('Unauthorized: You can only delete your own income records');
+    }
+
+    // Perform the deletion
+    const { error: deleteError } = await supabase
       .from(TABLE_NAME)
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id);
     
-    if (error) throw error;
+    if (deleteError) throw deleteError;
+
+    // Verify deletion was successful
+    const { data: verifyData } = await supabase
+      .from(TABLE_NAME)
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (verifyData) {
+      throw new Error('Failed to delete income record - record still exists');
+    }
   }
 };

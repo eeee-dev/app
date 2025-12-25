@@ -148,15 +148,39 @@ const IncomePage: React.FC = () => {
   };
 
   const handleDeleteIncome = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this income record? This will also delete all category breakdowns.')) {
-      try {
-        await incomeService.delete(id);
-        await loadData();
-        toast.success('Income record deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting income:', error);
-        toast.error('Failed to delete income');
-      }
+    if (!window.confirm('Are you sure you want to delete this income record? This will also delete all category breakdowns.')) {
+      return;
+    }
+
+    // Store the income to restore if deletion fails
+    const incomeToDelete = incomes.find(i => i.id === id);
+    if (!incomeToDelete) return;
+
+    // Optimistic update - remove from UI immediately
+    setIncomes(prevIncomes => prevIncomes.filter(i => i.id !== id));
+    toast.loading('Deleting income record...', { id: 'delete-income' });
+
+    try {
+      // Perform actual deletion
+      await incomeService.delete(id);
+      
+      // Wait a bit to ensure database transaction completes
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh data to ensure consistency
+      await loadData();
+      
+      toast.success('Income record deleted successfully!', { id: 'delete-income' });
+    } catch (error) {
+      console.error('Error deleting income:', error);
+      
+      // Rollback - restore the income
+      setIncomes(prevIncomes => [...prevIncomes, incomeToDelete].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ));
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete income';
+      toast.error(errorMessage, { id: 'delete-income' });
     }
   };
 

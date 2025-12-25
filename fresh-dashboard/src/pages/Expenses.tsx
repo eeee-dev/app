@@ -167,15 +167,39 @@ const Expenses: React.FC = () => {
   };
 
   const handleDeleteExpense = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      try {
-        await expensesService.delete(id);
-        await loadData();
-        toast.success('Expense deleted successfully');
-      } catch (error) {
-        console.error('Error deleting expense:', error);
-        toast.error('Failed to delete expense');
-      }
+    if (!window.confirm('Are you sure you want to delete this expense?')) {
+      return;
+    }
+
+    // Store the expense to restore if deletion fails
+    const expenseToDelete = expenses.find(e => e.id === id);
+    if (!expenseToDelete) return;
+
+    // Optimistic update - remove from UI immediately
+    setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== id));
+    toast.loading('Deleting expense...', { id: 'delete-expense' });
+
+    try {
+      // Perform actual deletion
+      await expensesService.delete(id);
+      
+      // Wait a bit to ensure database transaction completes
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh data to ensure consistency
+      await loadData();
+      
+      toast.success('Expense deleted successfully!', { id: 'delete-expense' });
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      
+      // Rollback - restore the expense
+      setExpenses(prevExpenses => [...prevExpenses, expenseToDelete].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ));
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete expense';
+      toast.error(errorMessage, { id: 'delete-expense' });
     }
   };
 
