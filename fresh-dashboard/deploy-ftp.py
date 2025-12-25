@@ -46,9 +46,9 @@ def upload_directory(ftp, local_dir, remote_dir):
         raise
 
 def main():
-    # FTP credentials
+    # FTP credentials - CORRECTED
     FTP_HOST = "ftp.eeee.mu"
-    FTP_USER = "davidnew@eeee.mu"
+    FTP_USER = "u384688932.davidnew"
     FTP_PASS = "poupS123*"
     FTP_REMOTE_DIR = "/public_html"
     
@@ -97,9 +97,9 @@ def main():
         print(f"Your application is now live at: https://app.eeee.mu")
         print("\nNext steps:")
         print("1. Visit https://app.eeee.mu to verify deployment")
-        print("2. Test the 404 fix by navigating to /purchase-orders and refreshing")
-        print("3. Test real-time sync by opening two browser tabs")
-        print("4. Test bulk delete functionality")
+        print("2. Test the Purchase Orders page at /purchase-orders")
+        print("3. Run the SQL script in Supabase to create database tables")
+        print("4. Test all features with real data")
         print("=" * 60)
         
     except ftplib.error_perm as e:
