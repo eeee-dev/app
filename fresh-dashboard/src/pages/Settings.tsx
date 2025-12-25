@@ -153,7 +153,7 @@ const Settings: React.FC = () => {
     try {
       setLoadingMembers(true);
       
-      // Get current user
+      // Get current user only - no admin API calls
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -176,7 +176,6 @@ const Settings: React.FC = () => {
       
     } catch (error) {
       console.error('Error loading team members:', error);
-      toast.info('Team management requires admin privileges. Showing your account only.');
       
       // Fallback to showing a default user
       setTeamMembers([
@@ -633,7 +632,7 @@ const Settings: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="finance">Finance</SelectItem>
                     <SelectItem value="musique">musiquë</SelectItem>
-                    <SelectItem value="musique">ë • musique</SelectItem>
+                    <SelectItem value="e-musique">ë • musique</SelectItem>
                     <SelectItem value="boucan">bōucan</SelectItem>
                     <SelectItem value="talent">talënt</SelectItem>
                     <SelectItem value="moris">mōris</SelectItem>
