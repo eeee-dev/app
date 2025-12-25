@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { incomeService, Income } from '@/services/income';
 import { departmentsService, Department } from '@/services/departments';
 import { projectsService, Project } from '@/services/projects';
@@ -18,6 +19,8 @@ import { IncomeCategory, IncomeBreakdownWithCategory } from '@/lib/incomeCategor
 import { CategoryBreakdownForm, BreakdownItem } from '@/components/income/CategoryBreakdownForm';
 import { CategoryManager } from '@/components/income/CategoryManager';
 import { BreakdownViewer } from '@/components/income/BreakdownViewer';
+import { BulkDeleteToolbar } from '@/components/BulkDeleteToolbar';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { formatCurrencyMUR } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -50,6 +53,7 @@ const IncomePage: React.FC = () => {
   const [incomeBreakdowns, setIncomeBreakdowns] = useState<Record<string, IncomeBreakdownWithCategory[]>>({});
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('incomes');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [newIncome, setNewIncome] = useState<NewIncomeForm>({
     invoice_number: `INC-${Date.now().toString().slice(-6)}`,
     client_name: '',
@@ -64,6 +68,33 @@ const IncomePage: React.FC = () => {
     status: 'pending',
     description: '',
     breakdowns: []
+  });
+
+  // Real-time sync setup
+  useRealtimeSync<Income>({
+    table: 'app_72505145eb_enhanced_income',
+    onInsert: (newIncome) => {
+      setIncomes(prev => {
+        // Check if income already exists
+        if (prev.some(i => i.id === newIncome.id)) return prev;
+        toast.info('New income record added');
+        return [newIncome, ...prev];
+      });
+    },
+    onUpdate: (updatedIncome) => {
+      setIncomes(prev => prev.map(i => i.id === updatedIncome.id ? updatedIncome : i));
+      toast.info('Income record updated');
+    },
+    onDelete: ({ id }) => {
+      setIncomes(prev => prev.filter(i => i.id !== id));
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+      toast.info('Income record deleted');
+    },
+    enabled: true
   });
 
   useEffect(() => {
@@ -116,6 +147,55 @@ const IncomePage: React.FC = () => {
     return matchesSearch && matchesStatus && matchesDepartment && matchesProject;
   });
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredIncomes.map(i => i.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (!window.confirm(`Are you sure you want to delete ${count} income record${count > 1 ? 's' : ''}? This will also delete all category breakdowns.`)) {
+      return;
+    }
+
+    const idsToDelete = Array.from(selectedIds);
+    const incomesToRestore = incomes.filter(i => selectedIds.has(i.id));
+
+    // Optimistic update
+    setIncomes(prev => prev.filter(i => !selectedIds.has(i.id)));
+    setSelectedIds(new Set());
+    toast.loading(`Deleting ${count} income record${count > 1 ? 's' : ''}...`, { id: 'bulk-delete' });
+
+    try {
+      await Promise.all(idsToDelete.map(id => incomeService.delete(id)));
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await loadData();
+      toast.success(`${count} income record${count > 1 ? 's' : ''} deleted successfully!`, { id: 'bulk-delete' });
+    } catch (error) {
+      console.error('Error bulk deleting incomes:', error);
+      setIncomes(prev => [...prev, ...incomesToRestore].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ));
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete income records';
+      toast.error(errorMessage, { id: 'bulk-delete' });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'received':
@@ -134,7 +214,6 @@ const IncomePage: React.FC = () => {
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
       await incomeService.update(id, { status: status as 'pending' | 'received' | 'overdue' | 'cancelled' });
-      await loadData();
       toast.success('Status updated successfully');
     } catch (error) {
       console.error('Error updating income status:', error);
@@ -152,33 +231,21 @@ const IncomePage: React.FC = () => {
       return;
     }
 
-    // Store the income to restore if deletion fails
     const incomeToDelete = incomes.find(i => i.id === id);
     if (!incomeToDelete) return;
 
-    // Optimistic update - remove from UI immediately
     setIncomes(prevIncomes => prevIncomes.filter(i => i.id !== id));
     toast.loading('Deleting income record...', { id: 'delete-income' });
 
     try {
-      // Perform actual deletion
       await incomeService.delete(id);
-      
-      // Wait a bit to ensure database transaction completes
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Refresh data to ensure consistency
-      await loadData();
-      
       toast.success('Income record deleted successfully!', { id: 'delete-income' });
     } catch (error) {
       console.error('Error deleting income:', error);
-      
-      // Rollback - restore the income
       setIncomes(prevIncomes => [...prevIncomes, incomeToDelete].sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
       ));
-      
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete income';
       toast.error(errorMessage, { id: 'delete-income' });
     }
@@ -190,7 +257,6 @@ const IncomePage: React.FC = () => {
       return;
     }
 
-    // Validate breakdowns if provided
     if (newIncome.breakdowns.length > 0) {
       const totalBreakdown = newIncome.breakdowns.reduce((sum, b) => sum + b.amount, 0);
       if (totalBreakdown > newIncome.amount) {
@@ -221,7 +287,6 @@ const IncomePage: React.FC = () => {
         description: newIncome.description
       });
 
-      // Create breakdowns if provided
       if (newIncome.breakdowns.length > 0) {
         await incomeCategoriesService.createMultipleBreakdowns(
           createdIncome.id,
@@ -232,8 +297,6 @@ const IncomePage: React.FC = () => {
           }))
         );
       }
-
-      await loadData();
       
       setNewIncome({
         invoice_number: `INC-${Date.now().toString().slice(-6)}`,
@@ -340,7 +403,6 @@ const IncomePage: React.FC = () => {
                 <DialogTitle>Add New Income Record</DialogTitle>
               </DialogHeader>
               <div className="grid gap-6 py-4">
-                {/* Basic Info */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg">Basic Information</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -496,7 +558,6 @@ const IncomePage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Category Breakdown */}
                 <div className="border-t pt-6">
                   <CategoryBreakdownForm
                     totalAmount={newIncome.amount}
@@ -623,58 +684,76 @@ const IncomePage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {filteredIncomes.length > 0 && (
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <Checkbox
+                        checked={selectedIds.size === filteredIncomes.length && filteredIncomes.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                      <span className="text-sm text-gray-600">
+                        {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+                      </span>
+                    </div>
+                  )}
                   {filteredIncomes.map((income) => (
                     <Card key={income.id} className="border-l-4 border-l-blue-500">
                       <CardContent className="pt-6">
                         <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold">{income.invoice_number}</h3>
-                              {getStatusBadge(income.status)}
-                              {incomeBreakdowns[income.id] && (
-                                <Badge variant="outline" className="gap-1">
-                                  <Tag className="h-3 w-3" />
-                                  {incomeBreakdowns[income.id].length} categories
-                                </Badge>
+                          <div className="flex items-start gap-3 flex-1">
+                            <Checkbox
+                              checked={selectedIds.has(income.id)}
+                              onCheckedChange={(checked) => handleSelectOne(income.id, checked as boolean)}
+                              className="mt-1"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-semibold">{income.invoice_number}</h3>
+                                {getStatusBadge(income.status)}
+                                {incomeBreakdowns[income.id] && (
+                                  <Badge variant="outline" className="gap-1">
+                                    <Tag className="h-3 w-3" />
+                                    {incomeBreakdowns[income.id].length} categories
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <p className="text-gray-500">Client</p>
+                                  <p className="font-medium">{income.client_name}</p>
+                                  {income.client_email && (
+                                    <p className="text-xs text-gray-500">{income.client_email}</p>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Amount</p>
+                                  <p className="font-bold text-lg">{formatCurrencyMUR(income.amount)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Date</p>
+                                  <p className="font-medium">{new Date(income.date).toLocaleDateString()}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Due Date</p>
+                                  <p className="font-medium">{income.due_date ? new Date(income.due_date).toLocaleDateString() : 'N/A'}</p>
+                                </div>
+                              </div>
+                              {(income.department_id || income.project_id) && (
+                                <div className="flex gap-4 mt-3 text-sm">
+                                  {income.department_id && (
+                                    <div className="flex items-center gap-1 text-gray-600">
+                                      <span className="font-medium">Dept:</span>
+                                      <span>{departments.find(d => d.id === income.department_id)?.name || 'Unknown'}</span>
+                                    </div>
+                                  )}
+                                  {income.project_id && (
+                                    <div className="flex items-center gap-1 text-gray-600">
+                                      <span className="font-medium">Project:</span>
+                                      <span>{projects.find(p => p.id === income.project_id)?.name || 'Unknown'}</span>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                              <div>
-                                <p className="text-gray-500">Client</p>
-                                <p className="font-medium">{income.client_name}</p>
-                                {income.client_email && (
-                                  <p className="text-xs text-gray-500">{income.client_email}</p>
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-gray-500">Amount</p>
-                                <p className="font-bold text-lg">{formatCurrencyMUR(income.amount)}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-500">Date</p>
-                                <p className="font-medium">{new Date(income.date).toLocaleDateString()}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-500">Due Date</p>
-                                <p className="font-medium">{income.due_date ? new Date(income.due_date).toLocaleDateString() : 'N/A'}</p>
-                              </div>
-                            </div>
-                            {(income.department_id || income.project_id) && (
-                              <div className="flex gap-4 mt-3 text-sm">
-                                {income.department_id && (
-                                  <div className="flex items-center gap-1 text-gray-600">
-                                    <span className="font-medium">Dept:</span>
-                                    <span>{departments.find(d => d.id === income.department_id)?.name || 'Unknown'}</span>
-                                  </div>
-                                )}
-                                {income.project_id && (
-                                  <div className="flex items-center gap-1 text-gray-600">
-                                    <span className="font-medium">Project:</span>
-                                    <span>{projects.find(p => p.id === income.project_id)?.name || 'Unknown'}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
                           </div>
                           <div className="flex gap-2">
                             {income.client_email && (
@@ -729,6 +808,12 @@ const IncomePage: React.FC = () => {
           <CategoryManager />
         </TabsContent>
       </Tabs>
+
+      <BulkDeleteToolbar
+        selectedCount={selectedIds.size}
+        onDelete={handleBulkDelete}
+        onCancel={() => setSelectedIds(new Set())}
+      />
     </div>
   );
 };

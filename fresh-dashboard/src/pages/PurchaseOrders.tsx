@@ -8,12 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PlusCircle, Search, Filter, Download, Eye, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrencyMUR } from '@/lib/utils';
 import { purchaseOrdersService, PurchaseOrder } from '@/services/purchase-orders';
 import { departmentsService, Department } from '@/services/departments';
 import { projectsService, Project } from '@/services/projects';
+import { BulkDeleteToolbar } from '@/components/BulkDeleteToolbar';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 
 interface NewPOForm {
   vendor_name: string;
@@ -35,6 +38,7 @@ const PurchaseOrders: React.FC = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [newPO, setNewPO] = useState<NewPOForm>({
     vendor_name: '',
     amount: 0,
@@ -43,6 +47,32 @@ const PurchaseOrders: React.FC = () => {
     department_id: '',
     project_id: '',
     po_number: ''
+  });
+
+  // Real-time sync setup
+  useRealtimeSync<PurchaseOrder>({
+    table: 'app_72505145eb_purchase_orders',
+    onInsert: (newPO) => {
+      setPurchaseOrders(prev => {
+        if (prev.some(po => po.id === newPO.id)) return prev;
+        toast.info('New purchase order added');
+        return [newPO, ...prev];
+      });
+    },
+    onUpdate: (updatedPO) => {
+      setPurchaseOrders(prev => prev.map(po => po.id === updatedPO.id ? updatedPO : po));
+      toast.info('Purchase order updated');
+    },
+    onDelete: ({ id }) => {
+      setPurchaseOrders(prev => prev.filter(po => po.id !== id));
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+      toast.info('Purchase order deleted');
+    },
+    enabled: true
   });
 
   useEffect(() => {
@@ -73,6 +103,54 @@ const PurchaseOrders: React.FC = () => {
       order.po_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.vendor_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredOrders.map(po => po.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (!window.confirm(`Are you sure you want to delete ${count} purchase order${count > 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return;
+    }
+
+    const idsToDelete = Array.from(selectedIds);
+    const posToRestore = purchaseOrders.filter(po => selectedIds.has(po.id));
+
+    setPurchaseOrders(prev => prev.filter(po => !selectedIds.has(po.id)));
+    setSelectedIds(new Set());
+    toast.loading(`Deleting ${count} purchase order${count > 1 ? 's' : ''}...`, { id: 'bulk-delete' });
+
+    try {
+      await Promise.all(idsToDelete.map(id => purchaseOrdersService.delete(id)));
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await loadData();
+      toast.success(`${count} purchase order${count > 1 ? 's' : ''} deleted successfully!`, { id: 'bulk-delete' });
+    } catch (error) {
+      console.error('Error bulk deleting purchase orders:', error);
+      setPurchaseOrders(prev => [...prev, ...posToRestore].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ));
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete purchase orders';
+      toast.error(errorMessage, { id: 'bulk-delete' });
+    }
+  };
 
   const totalAmount = purchaseOrders.reduce((sum, order) => sum + order.amount, 0);
   const pendingAmount = purchaseOrders
@@ -108,7 +186,6 @@ const PurchaseOrders: React.FC = () => {
         project_id: newPO.project_id || undefined
       });
 
-      await loadData();
       toast.success('Purchase order created successfully');
       setIsCreateDialogOpen(false);
       setNewPO({
@@ -161,7 +238,6 @@ const PurchaseOrders: React.FC = () => {
         project_id: newPO.project_id || undefined
       });
 
-      await loadData();
       toast.success('Purchase order updated successfully');
       setIsEditDialogOpen(false);
       setSelectedPO(null);
@@ -185,11 +261,9 @@ const PurchaseOrders: React.FC = () => {
       return;
     }
 
-    // Optimistic UI update - remove from UI immediately
     const deletedPO = purchaseOrders.find(po => po.id === id);
     setPurchaseOrders(prev => prev.filter(po => po.id !== id));
     
-    // Close dialogs if open
     if (isViewDialogOpen) {
       setIsViewDialogOpen(false);
     }
@@ -198,20 +272,12 @@ const PurchaseOrders: React.FC = () => {
     }
 
     try {
-      // Perform the actual deletion
       await purchaseOrdersService.delete(id);
-      
-      // Wait a moment for database transaction to complete
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Reload data to ensure consistency
-      await loadData();
-      
       toast.success('Purchase order deleted successfully');
     } catch (error) {
       console.error('Error deleting PO:', error);
       
-      // Rollback optimistic update on error
       if (deletedPO) {
         setPurchaseOrders(prev => [...prev, deletedPO].sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -221,7 +287,6 @@ const PurchaseOrders: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete purchase order. Please try again.';
       toast.error(errorMessage);
       
-      // Reload data to ensure UI matches database state
       await loadData();
     }
   };
@@ -517,6 +582,12 @@ const PurchaseOrders: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.size === filteredOrders.length && filteredOrders.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>PO Number</TableHead>
                   <TableHead>Vendor</TableHead>
                   <TableHead>Department</TableHead>
@@ -530,6 +601,12 @@ const PurchaseOrders: React.FC = () => {
               <TableBody>
                 {filteredOrders.map((order) => (
                   <TableRow key={order.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(order.id)}
+                        onCheckedChange={(checked) => handleSelectOne(order.id, checked as boolean)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{order.po_number}</TableCell>
                     <TableCell>{order.vendor_name}</TableCell>
                     <TableCell>
@@ -677,6 +754,12 @@ const PurchaseOrders: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkDeleteToolbar
+        selectedCount={selectedIds.size}
+        onDelete={handleBulkDelete}
+        onCancel={() => setSelectedIds(new Set())}
+      />
     </div>
   );
 };

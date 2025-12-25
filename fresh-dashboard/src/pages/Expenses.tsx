@@ -11,9 +11,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { expensesService, Expense } from '@/services/expenses';
 import { departmentsService, Department } from '@/services/departments';
 import { projectsService, Project } from '@/services/projects';
+import { BulkDeleteToolbar } from '@/components/BulkDeleteToolbar';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { formatCurrencyMUR, calculateVAT, calculateTotalWithVAT, DEFAULT_VAT_RATE } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -42,6 +45,7 @@ const Expenses: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [newExpense, setNewExpense] = useState<NewExpenseForm>({
     department_id: '',
     project_id: '',
@@ -55,6 +59,32 @@ const Expenses: React.FC = () => {
     date: new Date().toISOString().split('T')[0],
     status: 'pending',
     receipt_url: ''
+  });
+
+  // Real-time sync setup
+  useRealtimeSync<Expense>({
+    table: 'app_72505145eb_expenses',
+    onInsert: (newExpense) => {
+      setExpenses(prev => {
+        if (prev.some(e => e.id === newExpense.id)) return prev;
+        toast.info('New expense added');
+        return [newExpense, ...prev];
+      });
+    },
+    onUpdate: (updatedExpense) => {
+      setExpenses(prev => prev.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+      toast.info('Expense updated');
+    },
+    onDelete: ({ id }) => {
+      setExpenses(prev => prev.filter(e => e.id !== id));
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+      toast.info('Expense deleted');
+    },
+    enabled: true
   });
 
   useEffect(() => {
@@ -125,6 +155,54 @@ const Expenses: React.FC = () => {
     return matchesSearch && matchesDepartment && matchesProject && matchesStatus;
   });
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredExpenses.map(e => e.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (!window.confirm(`Are you sure you want to delete ${count} expense${count > 1 ? 's' : ''}?`)) {
+      return;
+    }
+
+    const idsToDelete = Array.from(selectedIds);
+    const expensesToRestore = expenses.filter(e => selectedIds.has(e.id));
+
+    setExpenses(prev => prev.filter(e => !selectedIds.has(e.id)));
+    setSelectedIds(new Set());
+    toast.loading(`Deleting ${count} expense${count > 1 ? 's' : ''}...`, { id: 'bulk-delete' });
+
+    try {
+      await Promise.all(idsToDelete.map(id => expensesService.delete(id)));
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await loadData();
+      toast.success(`${count} expense${count > 1 ? 's' : ''} deleted successfully!`, { id: 'bulk-delete' });
+    } catch (error) {
+      console.error('Error bulk deleting expenses:', error);
+      setExpenses(prev => [...prev, ...expensesToRestore].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ));
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete expenses';
+      toast.error(errorMessage, { id: 'bulk-delete' });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
@@ -158,7 +236,6 @@ const Expenses: React.FC = () => {
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
       await expensesService.update(id, { status: status as 'pending' | 'approved' | 'rejected' | 'paid' });
-      await loadData();
       toast.success('Status updated successfully');
     } catch (error) {
       console.error('Error updating status:', error);
@@ -171,33 +248,21 @@ const Expenses: React.FC = () => {
       return;
     }
 
-    // Store the expense to restore if deletion fails
     const expenseToDelete = expenses.find(e => e.id === id);
     if (!expenseToDelete) return;
 
-    // Optimistic update - remove from UI immediately
     setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== id));
     toast.loading('Deleting expense...', { id: 'delete-expense' });
 
     try {
-      // Perform actual deletion
       await expensesService.delete(id);
-      
-      // Wait a bit to ensure database transaction completes
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Refresh data to ensure consistency
-      await loadData();
-      
       toast.success('Expense deleted successfully!', { id: 'delete-expense' });
     } catch (error) {
       console.error('Error deleting expense:', error);
-      
-      // Rollback - restore the expense
       setExpenses(prevExpenses => [...prevExpenses, expenseToDelete].sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
       ));
-      
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete expense';
       toast.error(errorMessage, { id: 'delete-expense' });
     }
@@ -228,8 +293,6 @@ const Expenses: React.FC = () => {
         status: newExpense.status as 'pending' | 'approved' | 'rejected' | 'paid',
         receipt_url: newExpense.receipt_url
       });
-
-      await loadData();
       
       setNewExpense({
         department_id: '',
@@ -681,6 +744,12 @@ const Expenses: React.FC = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedIds.size === filteredExpenses.length && filteredExpenses.length > 0}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Department</TableHead>
                         <TableHead>Project</TableHead>
@@ -696,6 +765,12 @@ const Expenses: React.FC = () => {
                     <TableBody>
                       {filteredExpenses.map((expense) => (
                         <TableRow key={expense.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(expense.id)}
+                              onCheckedChange={(checked) => handleSelectOne(expense.id, checked as boolean)}
+                            />
+                          </TableCell>
                           <TableCell>{expense.description}</TableCell>
                           <TableCell>
                             {expense.department_id 
@@ -743,6 +818,12 @@ const Expenses: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <BulkDeleteToolbar
+        selectedCount={selectedIds.size}
+        onDelete={handleBulkDelete}
+        onCancel={() => setSelectedIds(new Set())}
+      />
     </div>
   );
 };
