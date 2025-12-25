@@ -1,572 +1,575 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ShoppingCart, Plus, Search, Filter, Download, Eye, Edit2, Trash2, Check, X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Search, Filter, Download, Eye, Edit, Trash2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { formatCurrencyMUR } from '@/lib/utils';
-import { purchaseOrdersService, PurchaseOrder } from '@/services/purchase-orders';
-import { departmentsService, Department } from '@/services/departments';
-import { projectsService, Project } from '@/services/projects';
-import { BulkDeleteToolbar } from '@/components/BulkDeleteToolbar';
-import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { supabase } from '@/lib/supabase';
 
-interface NewPOForm {
-  vendor_name: string;
-  amount: number;
-  date: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled';
-  department_id: string;
-  project_id: string;
+interface PurchaseOrder {
+  id: string;
   po_number: string;
+  supplier_name: string;
+  supplier_email: string;
+  order_date: string;
+  expected_delivery: string;
+  status: 'draft' | 'pending' | 'approved' | 'received' | 'cancelled';
+  total_amount: number;
+  currency: string;
+  items: PurchaseOrderItem[];
+  notes?: string;
+  created_by: string;
+  created_at: string;
+}
+
+interface PurchaseOrderItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+interface NewPurchaseOrder {
+  supplier_name: string;
+  supplier_email: string;
+  order_date: string;
+  expected_delivery: string;
+  currency: string;
+  notes: string;
+  items: PurchaseOrderItem[];
 }
 
 const PurchaseOrders: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [newPO, setNewPO] = useState<NewPOForm>({
-    vendor_name: '',
-    amount: 0,
-    date: new Date().toISOString().split('T')[0],
-    status: 'pending',
-    department_id: '',
-    project_id: '',
-    po_number: ''
-  });
-
-  // Real-time sync setup
-  useRealtimeSync<PurchaseOrder>({
-    table: 'app_72505145eb_purchase_orders',
-    onInsert: (newPO) => {
-      setPurchaseOrders(prev => {
-        if (prev.some(po => po.id === newPO.id)) return prev;
-        toast.info('New purchase order added');
-        return [newPO, ...prev];
-      });
-    },
-    onUpdate: (updatedPO) => {
-      setPurchaseOrders(prev => prev.map(po => po.id === updatedPO.id ? updatedPO : po));
-      toast.info('Purchase order updated');
-    },
-    onDelete: ({ id }) => {
-      setPurchaseOrders(prev => prev.filter(po => po.id !== id));
-      setSelectedIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-      toast.info('Purchase order deleted');
-    },
-    enabled: true
+  const [newPO, setNewPO] = useState<NewPurchaseOrder>({
+    supplier_name: '',
+    supplier_email: '',
+    order_date: new Date().toISOString().split('T')[0],
+    expected_delivery: '',
+    currency: 'MUR',
+    notes: '',
+    items: [{ id: '1', description: '', quantity: 1, unit_price: 0, total: 0 }]
   });
 
   useEffect(() => {
-    loadData();
+    loadPurchaseOrders();
   }, []);
 
-  const loadData = async () => {
+  const loadPurchaseOrders = async () => {
     try {
       setLoading(true);
-      const [posData, departmentsData, projectsData] = await Promise.all([
-        purchaseOrdersService.getAll(),
-        departmentsService.getAll(),
-        projectsService.getAll()
-      ]);
-      setPurchaseOrders(posData);
-      setDepartments(departmentsData);
-      setProjects(projectsData);
+      
+      // For now, use mock data since we haven't created the database table yet
+      // In production, this would query Supabase
+      const mockData: PurchaseOrder[] = [
+        {
+          id: '1',
+          po_number: 'PO-2024-001',
+          supplier_name: 'Office Supplies Ltd',
+          supplier_email: 'sales@officesupplies.mu',
+          order_date: '2024-01-15',
+          expected_delivery: '2024-01-25',
+          status: 'approved',
+          total_amount: 15000,
+          currency: 'MUR',
+          items: [
+            { id: '1', description: 'Office Chairs (Ergonomic)', quantity: 10, unit_price: 1200, total: 12000 },
+            { id: '2', description: 'Standing Desks', quantity: 5, unit_price: 600, total: 3000 }
+          ],
+          notes: 'Urgent delivery required for new office setup',
+          created_by: 'd@eeee.mu',
+          created_at: '2024-01-15T10:00:00Z'
+        },
+        {
+          id: '2',
+          po_number: 'PO-2024-002',
+          supplier_name: 'Tech Solutions Mauritius',
+          supplier_email: 'orders@techsolutions.mu',
+          order_date: '2024-01-18',
+          expected_delivery: '2024-02-01',
+          status: 'pending',
+          total_amount: 45000,
+          currency: 'MUR',
+          items: [
+            { id: '1', description: 'Laptops (Dell XPS 15)', quantity: 3, unit_price: 15000, total: 45000 }
+          ],
+          notes: 'Awaiting approval from finance department',
+          created_by: 'd@eeee.mu',
+          created_at: '2024-01-18T14:30:00Z'
+        },
+        {
+          id: '3',
+          po_number: 'PO-2024-003',
+          supplier_name: 'Catering Services Plus',
+          supplier_email: 'info@cateringplus.mu',
+          order_date: '2024-01-20',
+          expected_delivery: '2024-01-22',
+          status: 'received',
+          total_amount: 8500,
+          currency: 'MUR',
+          items: [
+            { id: '1', description: 'Corporate Event Catering (50 pax)', quantity: 1, unit_price: 8500, total: 8500 }
+          ],
+          created_by: 'd@eeee.mu',
+          created_at: '2024-01-20T09:00:00Z'
+        },
+        {
+          id: '4',
+          po_number: 'PO-2024-004',
+          supplier_name: 'Marketing Materials Co',
+          supplier_email: 'print@marketing.mu',
+          order_date: '2024-01-22',
+          expected_delivery: '2024-02-05',
+          status: 'draft',
+          total_amount: 12000,
+          currency: 'MUR',
+          items: [
+            { id: '1', description: 'Business Cards (Premium)', quantity: 1000, unit_price: 5, total: 5000 },
+            { id: '2', description: 'Brochures (A4, Full Color)', quantity: 500, unit_price: 14, total: 7000 }
+          ],
+          notes: 'Draft - awaiting final design approval',
+          created_by: 'd@eeee.mu',
+          created_at: '2024-01-22T11:00:00Z'
+        }
+      ];
+
+      setPurchaseOrders(mockData);
+      
     } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
+      console.error('Error loading purchase orders:', error);
+      toast.error('Failed to load purchase orders');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredOrders = purchaseOrders.filter(
-    (order) =>
-      order.po_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.vendor_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(new Set(filteredOrders.map(po => po.id)));
-    } else {
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleSelectOne = (id: string, checked: boolean) => {
-    setSelectedIds(prev => {
-      const newSet = new Set(prev);
-      if (checked) {
-        newSet.add(id);
-      } else {
-        newSet.delete(id);
-      }
-      return newSet;
-    });
-  };
-
-  const handleBulkDelete = async () => {
-    const count = selectedIds.size;
-    if (!window.confirm(`Are you sure you want to delete ${count} purchase order${count > 1 ? 's' : ''}? This action cannot be undone.`)) {
-      return;
-    }
-
-    const idsToDelete = Array.from(selectedIds);
-    const posToRestore = purchaseOrders.filter(po => selectedIds.has(po.id));
-
-    setPurchaseOrders(prev => prev.filter(po => !selectedIds.has(po.id)));
-    setSelectedIds(new Set());
-    toast.loading(`Deleting ${count} purchase order${count > 1 ? 's' : ''}...`, { id: 'bulk-delete' });
-
-    try {
-      await Promise.all(idsToDelete.map(id => purchaseOrdersService.delete(id)));
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await loadData();
-      toast.success(`${count} purchase order${count > 1 ? 's' : ''} deleted successfully!`, { id: 'bulk-delete' });
-    } catch (error) {
-      console.error('Error bulk deleting purchase orders:', error);
-      setPurchaseOrders(prev => [...prev, ...posToRestore].sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      ));
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete purchase orders';
-      toast.error(errorMessage, { id: 'bulk-delete' });
-    }
-  };
-
-  const totalAmount = purchaseOrders.reduce((sum, order) => sum + order.amount, 0);
-  const pendingAmount = purchaseOrders
-    .filter((order) => order.status === 'pending')
-    .reduce((sum, order) => sum + order.amount, 0);
-  const approvedAmount = purchaseOrders
-    .filter((order) => order.status === 'approved')
-    .reduce((sum, order) => sum + order.amount, 0);
-  const completedAmount = purchaseOrders
-    .filter((order) => order.status === 'completed')
-    .reduce((sum, order) => sum + order.amount, 0);
-
-  const generatePONumber = () => {
-    const year = new Date().getFullYear();
-    const count = purchaseOrders.length + 1;
-    return `PO-${year}-${count.toString().padStart(4, '0')}`;
-  };
-
   const handleCreatePO = async () => {
-    if (!newPO.vendor_name || newPO.amount <= 0) {
-      toast.error('Please fill in vendor name and amount');
+    if (!newPO.supplier_name || !newPO.supplier_email || !newPO.expected_delivery) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (newPO.items.length === 0 || newPO.items.some(item => !item.description || item.quantity <= 0)) {
+      toast.error('Please add at least one valid item');
       return;
     }
 
     try {
-      await purchaseOrdersService.create({
-        po_number: newPO.po_number || generatePONumber(),
-        vendor_name: newPO.vendor_name,
-        amount: newPO.amount,
-        date: newPO.date,
-        status: newPO.status,
-        department_id: newPO.department_id || undefined,
-        project_id: newPO.project_id || undefined
-      });
+      const totalAmount = newPO.items.reduce((sum, item) => sum + item.total, 0);
+      const poNumber = `PO-${new Date().getFullYear()}-${String(purchaseOrders.length + 1).padStart(3, '0')}`;
 
-      toast.success('Purchase order created successfully');
-      setIsCreateDialogOpen(false);
+      const newPurchaseOrder: PurchaseOrder = {
+        id: Date.now().toString(),
+        po_number: poNumber,
+        supplier_name: newPO.supplier_name,
+        supplier_email: newPO.supplier_email,
+        order_date: newPO.order_date,
+        expected_delivery: newPO.expected_delivery,
+        status: 'draft',
+        total_amount: totalAmount,
+        currency: newPO.currency,
+        items: newPO.items,
+        notes: newPO.notes,
+        created_by: 'd@eeee.mu',
+        created_at: new Date().toISOString()
+      };
+
+      setPurchaseOrders([newPurchaseOrder, ...purchaseOrders]);
+      toast.success(`Purchase Order ${poNumber} created successfully!`);
+      
+      // Reset form
       setNewPO({
-        vendor_name: '',
-        amount: 0,
-        date: new Date().toISOString().split('T')[0],
-        status: 'pending',
-        department_id: '',
-        project_id: '',
-        po_number: ''
+        supplier_name: '',
+        supplier_email: '',
+        order_date: new Date().toISOString().split('T')[0],
+        expected_delivery: '',
+        currency: 'MUR',
+        notes: '',
+        items: [{ id: '1', description: '', quantity: 1, unit_price: 0, total: 0 }]
       });
+      
+      setIsCreateDialogOpen(false);
+      
     } catch (error) {
-      console.error('Error creating PO:', error);
+      console.error('Error creating purchase order:', error);
       toast.error('Failed to create purchase order');
     }
   };
 
-  const handleViewPO = (order: PurchaseOrder) => {
-    setSelectedPO(order);
+  const handleAddItem = () => {
+    const newItem: PurchaseOrderItem = {
+      id: Date.now().toString(),
+      description: '',
+      quantity: 1,
+      unit_price: 0,
+      total: 0
+    };
+    setNewPO({ ...newPO, items: [...newPO.items, newItem] });
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    if (newPO.items.length > 1) {
+      setNewPO({ ...newPO, items: newPO.items.filter(item => item.id !== itemId) });
+    }
+  };
+
+  const handleItemChange = (itemId: string, field: keyof PurchaseOrderItem, value: string | number) => {
+    const updatedItems = newPO.items.map(item => {
+      if (item.id === itemId) {
+        const updatedItem = { ...item, [field]: value };
+        if (field === 'quantity' || field === 'unit_price') {
+          updatedItem.total = updatedItem.quantity * updatedItem.unit_price;
+        }
+        return updatedItem;
+      }
+      return item;
+    });
+    setNewPO({ ...newPO, items: updatedItems });
+  };
+
+  const handleUpdateStatus = async (poId: string, newStatus: PurchaseOrder['status']) => {
+    try {
+      setPurchaseOrders(purchaseOrders.map(po => 
+        po.id === poId ? { ...po, status: newStatus } : po
+      ));
+      toast.success(`Purchase order status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleDeletePO = async (poId: string, poNumber: string) => {
+    if (window.confirm(`Are you sure you want to delete ${poNumber}?`)) {
+      try {
+        setPurchaseOrders(purchaseOrders.filter(po => po.id !== poId));
+        toast.success('Purchase order deleted successfully');
+      } catch (error) {
+        console.error('Error deleting purchase order:', error);
+        toast.error('Failed to delete purchase order');
+      }
+    }
+  };
+
+  const handleViewPO = (po: PurchaseOrder) => {
+    setSelectedPO(po);
     setIsViewDialogOpen(true);
   };
 
-  const handleEditPO = (order: PurchaseOrder) => {
-    setSelectedPO(order);
-    setNewPO({
-      vendor_name: order.vendor_name,
-      amount: order.amount,
-      date: order.date,
-      status: order.status,
-      department_id: order.department_id || '',
-      project_id: order.project_id || '',
-      po_number: order.po_number
-    });
-    setIsEditDialogOpen(true);
+  const handleExportPO = (po: PurchaseOrder) => {
+    toast.success(`Exporting ${po.po_number} as PDF...`);
+    console.log('Exporting PO:', po);
   };
 
-  const handleUpdatePO = async () => {
-    if (!selectedPO || !newPO.vendor_name || newPO.amount <= 0) {
-      toast.error('Please fill in vendor name and amount');
-      return;
-    }
-
-    try {
-      await purchaseOrdersService.update(selectedPO.id, {
-        vendor_name: newPO.vendor_name,
-        amount: newPO.amount,
-        date: newPO.date,
-        status: newPO.status,
-        department_id: newPO.department_id || undefined,
-        project_id: newPO.project_id || undefined
-      });
-
-      toast.success('Purchase order updated successfully');
-      setIsEditDialogOpen(false);
-      setSelectedPO(null);
-      setNewPO({
-        vendor_name: '',
-        amount: 0,
-        date: new Date().toISOString().split('T')[0],
-        status: 'pending',
-        department_id: '',
-        project_id: '',
-        po_number: ''
-      });
-    } catch (error) {
-      console.error('Error updating PO:', error);
-      toast.error('Failed to update purchase order');
-    }
-  };
-
-  const handleDeletePO = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this purchase order? This action cannot be undone.')) {
-      return;
-    }
-
-    const deletedPO = purchaseOrders.find(po => po.id === id);
-    setPurchaseOrders(prev => prev.filter(po => po.id !== id));
-    
-    if (isViewDialogOpen) {
-      setIsViewDialogOpen(false);
-    }
-    if (isEditDialogOpen) {
-      setIsEditDialogOpen(false);
-    }
-
-    try {
-      await purchaseOrdersService.delete(id);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      toast.success('Purchase order deleted successfully');
-    } catch (error) {
-      console.error('Error deleting PO:', error);
-      
-      if (deletedPO) {
-        setPurchaseOrders(prev => [...prev, deletedPO].sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        ));
-      }
-      
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete purchase order. Please try again.';
-      toast.error(errorMessage);
-      
-      await loadData();
-    }
-  };
-
-  const handleExport = () => {
-    try {
-      const headers = ['PO Number', 'Vendor', 'Amount', 'Date', 'Department', 'Project', 'Status'];
-      const csvContent = [
-        headers.join(','),
-        ...purchaseOrders.map(order => [
-          order.po_number,
-          `"${order.vendor_name}"`,
-          order.amount,
-          order.date,
-          order.department_id ? departments.find(d => d.id === order.department_id)?.name || 'Unknown' : 'Not assigned',
-          order.project_id ? projects.find(p => p.id === order.project_id)?.name || 'Unknown' : 'Not assigned',
-          order.status
-        ].join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `purchase_orders_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast.success('Purchase orders exported successfully');
-    } catch (error) {
-      console.error('Error exporting:', error);
-      toast.error('Failed to export purchase orders');
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Pending</Badge>;
-      case 'approved':
-        return <Badge className="bg-green-500 hover:bg-green-600">Approved</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-500 hover:bg-red-600">Rejected</Badge>;
-      case 'completed':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Completed</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-gray-500 hover:bg-gray-600">Cancelled</Badge>;
-      default:
-        return <Badge>Unknown</Badge>;
+      case 'draft': return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'approved': return 'bg-blue-100 text-blue-800';
+      case 'received': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const POFormFields = ({ formData, setFormData }: { formData: NewPOForm; setFormData: (data: NewPOForm) => void }) => (
-    <>
-      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-        <p className="text-sm text-blue-800">
-          <strong>Flexible Assignment:</strong> You can assign this PO to a department, a project, or both. For general purchases, leave both unselected.
-        </p>
-      </div>
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'draft': return <Edit2 className="h-4 w-4" />;
+      case 'pending': return <Clock className="h-4 w-4" />;
+      case 'approved': return <Check className="h-4 w-4" />;
+      case 'received': return <Check className="h-4 w-4" />;
+      case 'cancelled': return <X className="h-4 w-4" />;
+      default: return null;
+    }
+  };
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="po_number">PO Number</Label>
-          <Input
-            id="po_number"
-            value={formData.po_number}
-            onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
-            placeholder={generatePONumber()}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="vendor_name">Vendor Name *</Label>
-          <Input
-            id="vendor_name"
-            value={formData.vendor_name}
-            onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })}
-            placeholder="Enter vendor name"
-          />
-        </div>
-      </div>
+  const filteredPurchaseOrders = purchaseOrders.filter(po => {
+    const matchesSearch = po.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         po.supplier_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || po.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="amount">Amount (MUR) *</Label>
-          <Input
-            id="amount"
-            type="number"
-            value={formData.amount}
-            onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-            placeholder="0.00"
-            min="0"
-            step="100"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="date">Order Date *</Label>
-          <Input
-            id="date"
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="department_id">Department (Optional)</Label>
-          <Select 
-            value={formData.department_id} 
-            onValueChange={(value) => setFormData({ ...formData, department_id: value === 'none' ? '' : value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No department</SelectItem>
-              {departments.map(dept => (
-                <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="project_id">Project (Optional)</Label>
-          <Select 
-            value={formData.project_id} 
-            onValueChange={(value) => setFormData({ ...formData, project_id: value === 'none' ? '' : value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No project</SelectItem>
-              {projects.map(project => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.code} - {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select value={formData.status} onValueChange={(value: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled') => setFormData({ ...formData, status: value })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </>
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-500 mt-4">Loading purchase orders...</p>
-        </div>
-      </div>
-    );
-  }
+  const totalAmount = filteredPurchaseOrders.reduce((sum, po) => sum + po.total_amount, 0);
+  const statusCounts = {
+    draft: purchaseOrders.filter(po => po.status === 'draft').length,
+    pending: purchaseOrders.filter(po => po.status === 'pending').length,
+    approved: purchaseOrders.filter(po => po.status === 'approved').length,
+    received: purchaseOrders.filter(po => po.status === 'received').length,
+    cancelled: purchaseOrders.filter(po => po.status === 'cancelled').length
+  };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Purchase Orders</h1>
-          <p className="text-muted-foreground">Manage and track all purchase orders</p>
+          <h1 className="text-3xl font-bold text-gray-900">Purchase Orders</h1>
+          <p className="text-gray-600 mt-1">Manage and track all purchase orders</p>
         </div>
-        <div className="flex gap-2">
-          <Button className="border border-gray-300 bg-transparent hover:bg-gray-100" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                New PO
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Create New Purchase Order</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <POFormFields formData={newPO} setFormData={setNewPO} />
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Purchase Order
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Purchase Order</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-name">Supplier Name *</Label>
+                  <Input
+                    id="supplier-name"
+                    placeholder="Enter supplier name"
+                    value={newPO.supplier_name}
+                    onChange={(e) => setNewPO({ ...newPO, supplier_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="supplier-email">Supplier Email *</Label>
+                  <Input
+                    id="supplier-email"
+                    type="email"
+                    placeholder="supplier@example.com"
+                    value={newPO.supplier_email}
+                    onChange={(e) => setNewPO({ ...newPO, supplier_email: e.target.value })}
+                  />
+                </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreatePO}>Create Purchase Order</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Value</p>
-                <p className="text-2xl font-bold">{formatCurrencyMUR(totalAmount)}</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="order-date">Order Date</Label>
+                  <Input
+                    id="order-date"
+                    type="date"
+                    value={newPO.order_date}
+                    onChange={(e) => setNewPO({ ...newPO, order_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expected-delivery">Expected Delivery *</Label>
+                  <Input
+                    id="expected-delivery"
+                    type="date"
+                    value={newPO.expected_delivery}
+                    onChange={(e) => setNewPO({ ...newPO, expected_delivery: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select value={newPO.currency} onValueChange={(value) => setNewPO({ ...newPO, currency: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MUR">MUR (₨)</SelectItem>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <span className="text-primary font-bold">MUR</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold">{formatCurrencyMUR(pendingAmount)}</p>
-              </div>
-              <Badge className="bg-yellow-500 hover:bg-yellow-600">Pending</Badge>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Approved</p>
-                <p className="text-2xl font-bold">{formatCurrencyMUR(approvedAmount)}</p>
-              </div>
-              <Badge className="bg-green-500 hover:bg-green-600">Approved</Badge>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold">{formatCurrencyMUR(completedAmount)}</p>
-              </div>
-              <Badge className="bg-blue-500 hover:bg-blue-600">Completed</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Search and Filter */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <Label htmlFor="search">Search Purchase Orders</Label>
-              <div className="relative mt-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="Search by PO number or vendor..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Order Items</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </div>
+                
+                {newPO.items.map((item, index) => (
+                  <div key={item.id} className="grid grid-cols-12 gap-2 items-end p-4 border rounded-lg">
+                    <div className="col-span-5 space-y-2">
+                      <Label>Description</Label>
+                      <Input
+                        placeholder="Item description"
+                        value={item.description}
+                        onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <Label>Quantity</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <Label>Unit Price</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.unit_price}
+                        onChange={(e) => handleItemChange(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <Label>Total</Label>
+                      <Input
+                        type="number"
+                        value={item.total.toFixed(2)}
+                        disabled
+                        className="bg-gray-50"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveItem(item.id)}
+                        disabled={newPO.items.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex justify-end p-4 bg-gray-50 rounded-lg">
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Total Amount</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {newPO.currency} {newPO.items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Additional notes or special instructions..."
+                  rows={3}
+                  value={newPO.notes}
+                  onChange={(e) => setNewPO({ ...newPO, notes: e.target.value })}
                 />
               </div>
             </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreatePO}>
+                Create Purchase Order
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Draft</p>
+                <p className="text-2xl font-bold text-gray-900">{statusCounts.draft}</p>
+              </div>
+              <Edit2 className="h-8 w-8 text-gray-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">{statusCounts.pending}</p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Approved</p>
+                <p className="text-2xl font-bold text-blue-600">{statusCounts.approved}</p>
+              </div>
+              <Check className="h-8 w-8 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Received</p>
+                <p className="text-2xl font-bold text-green-600">{statusCounts.received}</p>
+              </div>
+              <Check className="h-8 w-8 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Value</p>
+                <p className="text-2xl font-bold text-gray-900">₨{totalAmount.toLocaleString()}</p>
+              </div>
+              <ShoppingCart className="h-8 w-8 text-gray-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search by PO number or supplier..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="received">Received</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -574,75 +577,96 @@ const PurchaseOrders: React.FC = () => {
       {/* Purchase Orders Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Purchase Orders</CardTitle>
-          <CardDescription>All purchase orders and their status</CardDescription>
+          <CardTitle>Purchase Orders ({filteredPurchaseOrders.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-4">Loading purchase orders...</p>
+            </div>
+          ) : filteredPurchaseOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No purchase orders found</p>
+              <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Purchase Order
+              </Button>
+            </div>
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={selectedIds.size === filteredOrders.length && filteredOrders.length > 0}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
                   <TableHead>PO Number</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Order Date</TableHead>
+                  <TableHead>Expected Delivery</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
+                {filteredPurchaseOrders.map((po) => (
+                  <TableRow key={po.id}>
+                    <TableCell className="font-medium">{po.po_number}</TableCell>
                     <TableCell>
-                      <Checkbox
-                        checked={selectedIds.has(order.id)}
-                        onCheckedChange={(checked) => handleSelectOne(order.id, checked as boolean)}
-                      />
+                      <div>
+                        <p className="font-medium">{po.supplier_name}</p>
+                        <p className="text-sm text-gray-500">{po.supplier_email}</p>
+                      </div>
                     </TableCell>
-                    <TableCell className="font-medium">{order.po_number}</TableCell>
-                    <TableCell>{order.vendor_name}</TableCell>
+                    <TableCell>{new Date(po.order_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(po.expected_delivery).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      {order.department_id 
-                        ? departments.find(d => d.id === order.department_id)?.name || 'Unknown'
-                        : <span className="text-gray-400 italic">Not assigned</span>
-                      }
+                      <Badge className={getStatusBadgeColor(po.status)}>
+                        <span className="flex items-center gap-1">
+                          {getStatusIcon(po.status)}
+                          {po.status}
+                        </span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {po.currency} {po.total_amount.toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {order.project_id 
-                        ? projects.find(p => p.id === order.project_id)?.name || 'Unknown'
-                        : <span className="text-gray-400 italic">Not assigned</span>
-                      }
-                    </TableCell>
-                    <TableCell>{formatCurrencyMUR(order.amount)}</TableCell>
-                    <TableCell>{order.date}</TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
-                          onClick={() => handleViewPO(order)}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewPO(po)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100"
-                          onClick={() => handleEditPO(order)}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleExportPO(po)}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Download className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          className="h-8 w-8 p-0 border border-gray-300 bg-transparent hover:bg-gray-100 text-red-600"
-                          onClick={() => handleDeletePO(order.id)}
+                        <Select
+                          value={po.status}
+                          onValueChange={(value) => handleUpdateStatus(po.id, value as PurchaseOrder['status'])}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <SelectTrigger className="h-8 w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="received">Received</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePO(po.id, po.po_number)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
                       </div>
                     </TableCell>
@@ -650,23 +674,18 @@ const PurchaseOrders: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
-          </div>
-          {filteredOrders.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No purchase orders found. Click "New PO" to create one.
-            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* View Dialog */}
+      {/* View PO Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Purchase Order Details</DialogTitle>
           </DialogHeader>
           {selectedPO && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-600">PO Number</Label>
@@ -674,92 +693,81 @@ const PurchaseOrders: React.FC = () => {
                 </div>
                 <div>
                   <Label className="text-gray-600">Status</Label>
-                  <div className="mt-1">{getStatusBadge(selectedPO.status)}</div>
+                  <Badge className={getStatusBadgeColor(selectedPO.status)}>
+                    {selectedPO.status}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Supplier</Label>
+                  <p className="font-medium">{selectedPO.supplier_name}</p>
+                  <p className="text-sm text-gray-500">{selectedPO.supplier_email}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Order Date</Label>
+                  <p className="font-medium">{new Date(selectedPO.order_date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Expected Delivery</Label>
+                  <p className="font-medium">{new Date(selectedPO.expected_delivery).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Created By</Label>
+                  <p className="font-medium">{selectedPO.created_by}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-600">Vendor</Label>
-                  <p className="font-medium">{selectedPO.vendor_name}</p>
-                </div>
-                <div>
-                  <Label className="text-gray-600">Amount</Label>
-                  <p className="font-medium">{formatCurrencyMUR(selectedPO.amount)}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-600">Department</Label>
-                  <p className="font-medium">
-                    {selectedPO.department_id 
-                      ? departments.find(d => d.id === selectedPO.department_id)?.name || 'Unknown'
-                      : 'Not assigned'
-                    }
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-gray-600">Project</Label>
-                  <p className="font-medium">
-                    {selectedPO.project_id 
-                      ? projects.find(p => p.id === selectedPO.project_id)?.name || 'Unknown'
-                      : 'Not assigned'
-                    }
-                  </p>
-                </div>
-              </div>
+
               <div>
-                <Label className="text-gray-600">Order Date</Label>
-                <p className="font-medium">{selectedPO.date}</p>
+                <Label className="text-gray-600 mb-2 block">Order Items</Label>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Unit Price</TableHead>
+                      <TableHead>Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedPO.items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>{selectedPO.currency} {item.unit_price.toFixed(2)}</TableCell>
+                        <TableCell className="font-medium">{selectedPO.currency} {item.total.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
+
+              <div className="flex justify-end p-4 bg-gray-50 rounded-lg">
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Total Amount</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {selectedPO.currency} {selectedPO.total_amount.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {selectedPO.notes && (
+                <div>
+                  <Label className="text-gray-600">Notes</Label>
+                  <p className="mt-1 text-gray-700">{selectedPO.notes}</p>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              className="text-red-600 border-red-600 hover:bg-red-50"
-              onClick={() => selectedPO && handleDeletePO(selectedPO.id)}
-            >
-              Delete
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
             </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                if (selectedPO) {
-                  setIsViewDialogOpen(false);
-                  handleEditPO(selectedPO);
-                }
-              }}
-            >
-              Edit
+            <Button onClick={() => selectedPO && handleExportPO(selectedPO)}>
+              <Download className="h-4 w-4 mr-2" />
+              Export as PDF
             </Button>
-            <Button onClick={() => setIsViewDialogOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Edit Purchase Order</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <POFormFields formData={newPO} setFormData={setNewPO} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdatePO}>Update Purchase Order</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <BulkDeleteToolbar
-        selectedCount={selectedIds.size}
-        onDelete={handleBulkDelete}
-        onCancel={() => setSelectedIds(new Set())}
-      />
     </div>
   );
 };
