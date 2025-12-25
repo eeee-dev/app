@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Target, PieChart } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, PieChart, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -42,8 +42,8 @@ const Budgets: React.FC = () => {
   ];
 
   const handleCreateBudget = () => {
-    if (!selectedDepartment || budgetAmount <= 0) {
-      toast.error('Please select a department and enter a valid budget amount');
+    if (!selectedDepartment || budgetAmount < 0) {
+      toast.error('Please select a department and enter a valid budget amount (0 or greater)');
       return;
     }
 
@@ -54,8 +54,8 @@ const Budgets: React.FC = () => {
   };
 
   const handleAdjustBudget = () => {
-    if (!selectedDepartment || budgetAmount <= 0) {
-      toast.error('Please select a department and enter a valid adjustment amount');
+    if (!selectedDepartment || budgetAmount < 0) {
+      toast.error('Please select a department and enter a valid adjustment amount (0 or greater)');
       return;
     }
 
@@ -75,10 +75,22 @@ const Budgets: React.FC = () => {
       return dept;
     }));
 
-    toast.success(`Budget adjusted for ${selectedDepartment}`);
+    if (budgetAmount === 0) {
+      toast.success(`Budget set to ${formatCurrencyMUR(0)} for ${selectedDepartment}`);
+    } else {
+      toast.success(`Budget adjusted to ${formatCurrencyMUR(budgetAmount)} for ${selectedDepartment}`);
+    }
+    
     setIsAdjustBudgetOpen(false);
     setSelectedDepartment('');
     setBudgetAmount(0);
+  };
+
+  const handleDeleteBudget = (departmentName: string) => {
+    if (window.confirm(`Are you sure you want to delete the budget for ${departmentName}? This action cannot be undone.`)) {
+      setDepartments(departments.filter(dept => dept.name !== departmentName));
+      toast.success(`Budget for ${departmentName} has been deleted`);
+    }
   };
 
   const handleCreateForecast = () => {
@@ -105,7 +117,7 @@ const Budgets: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3">
           <Button 
-            className="border border-gray-300 bg-transparent hover:bg-gray-100"
+            className="border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
             onClick={handleComparePeriods}
           >
             Compare Periods
@@ -144,6 +156,7 @@ const Budgets: React.FC = () => {
                     min="0"
                     step="1000"
                   />
+                  <p className="text-xs text-gray-500">You can set the budget to 0 if needed</p>
                 </div>
               </div>
               <DialogFooter>
@@ -164,37 +177,54 @@ const Budgets: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {departments.map((dept) => (
-                <div key={dept.name} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="font-medium">{dept.name}</span>
-                      <span className="text-sm px-2 py-1 bg-gray-100 rounded-full">
-                        {formatCurrencyMUR(dept.allocated)}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <div className="font-medium">{formatCurrencyMUR(dept.spent)}</div>
-                        <div className="text-sm text-gray-500">spent</div>
-                      </div>
-                      <div className={`flex items-center ${dept.utilization > 90 ? 'text-red-600' : 'text-green-600'}`}>
-                        {dept.utilization > 90 ? (
-                          <TrendingDown className="h-4 w-4 mr-1" />
-                        ) : (
-                          <TrendingUp className="h-4 w-4 mr-1" />
-                        )}
-                        <span>{dept.utilization}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Progress value={dept.utilization} className="h-2" />
-                  <div className="flex justify-between text-sm text-gray-500">
-                    <span>{formatCurrencyMUR(dept.spent)} spent</span>
-                    <span>{formatCurrencyMUR(dept.remaining)} remaining</span>
-                  </div>
+              {departments.length === 0 ? (
+                <div className="text-center py-12">
+                  <PieChart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No budgets created yet</p>
+                  <p className="text-sm text-gray-400 mt-1">Click "Create Budget" to get started</p>
                 </div>
-              ))}
+              ) : (
+                departments.map((dept) => (
+                  <div key={dept.name} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="font-medium">{dept.name}</span>
+                        <span className="text-sm px-2 py-1 bg-gray-100 rounded-full">
+                          {formatCurrencyMUR(dept.allocated)}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className="font-medium">{formatCurrencyMUR(dept.spent)}</div>
+                          <div className="text-sm text-gray-500">spent</div>
+                        </div>
+                        <div className={`flex items-center ${dept.utilization > 90 ? 'text-red-600' : 'text-green-600'}`}>
+                          {dept.utilization > 90 ? (
+                            <TrendingDown className="h-4 w-4 mr-1" />
+                          ) : (
+                            <TrendingUp className="h-4 w-4 mr-1" />
+                          )}
+                          <span>{dept.allocated > 0 ? dept.utilization.toFixed(0) : '0'}%</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteBudget(dept.name)}
+                          title="Delete budget"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Progress value={dept.utilization} className="h-2" />
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>{formatCurrencyMUR(dept.spent)} spent</span>
+                      <span>{formatCurrencyMUR(dept.remaining)} remaining</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -241,7 +271,7 @@ const Budgets: React.FC = () => {
                 <div className="space-y-2">
                   <Dialog open={isAdjustBudgetOpen} onOpenChange={setIsAdjustBudgetOpen}>
                     <DialogTrigger asChild>
-                      <Button className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100">
+                      <Button className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700">
                         Adjust Department Budgets
                       </Button>
                     </DialogTrigger>
@@ -276,6 +306,7 @@ const Budgets: React.FC = () => {
                             min="0"
                             step="1000"
                           />
+                          <p className="text-xs text-gray-500">You can set the budget to 0 if needed</p>
                         </div>
                       </div>
                       <DialogFooter>
@@ -289,7 +320,7 @@ const Budgets: React.FC = () => {
 
                   <Dialog open={isForecastOpen} onOpenChange={setIsForecastOpen}>
                     <DialogTrigger asChild>
-                      <Button className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100">
+                      <Button className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700">
                         Create Quarterly Forecast
                       </Button>
                     </DialogTrigger>
@@ -333,7 +364,7 @@ const Budgets: React.FC = () => {
                   </Dialog>
 
                   <Button 
-                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100"
+                    className="w-full justify-start border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700"
                     onClick={handleGenerateReport}
                   >
                     Generate Budget Report
