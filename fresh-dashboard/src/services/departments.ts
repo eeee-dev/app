@@ -71,3 +71,8 @@ export const departmentsService = {
     if (error) throw error;
   }
 };
+
+// Export convenience function
+export async function getDepartments(): Promise<Department[]> {
+  return departmentsService.getAll();
+}

@@ -25,7 +25,7 @@ import { format } from 'date-fns';
 import { expensesService } from '@/services/expenses';
 import { incomeService } from '@/services/income';
 import { departmentsService } from '@/services/departments';
-import { budgetsService } from '@/services/budgets';
+import { getBudgets } from '@/services/budgets';
 import { formatCurrencyMUR } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -138,7 +138,7 @@ const Statistics: React.FC = () => {
         expensesService.getAll(),
         incomeService.getAll(),
         departmentsService.getAll(),
-        budgetsService.getAll()
+        getBudgets()
       ]);
 
       // Calculate expense categories
