@@ -19,7 +19,6 @@ import Budgets from './pages/Budgets';
 import Reports from './pages/Reports';
 import TaxReturn from './pages/TaxReturn';
 import BankStatements from './pages/BankStatements';
-import PurchaseOrders from './pages/PurchaseOrders';
 import ExportReports from './pages/ExportReports';
 import BulkImport from './pages/BulkImport';
 import Statistics from './pages/Statistics';
@@ -58,7 +57,6 @@ const App = () => (
               <Route path="reports" element={<Reports />} />
               <Route path="tax-return" element={<TaxReturn />} />
               <Route path="bank-statements" element={<BankStatements />} />
-              <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="export-reports" element={<ExportReports />} />
               <Route path="bulk-import" element={<BulkImport />} />
               <Route path="statistics" element={<Statistics />} />

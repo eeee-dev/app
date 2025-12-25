@@ -74,7 +74,7 @@ const Index = () => {
               </div>
               <CardTitle>Document Management</CardTitle>
               <CardDescription>
-                Handle invoices, purchase orders, and bank statements efficiently
+                Handle invoices and bank statements efficiently
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -89,7 +89,7 @@ const Index = () => {
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Purchase order tracking</span>
+                  <span>Expense tracking</span>
                 </li>
               </ul>
             </CardContent>

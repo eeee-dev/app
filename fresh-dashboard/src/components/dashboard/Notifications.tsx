@@ -2,12 +2,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, Check, AlertTriangle, DollarSign, FileText, ShoppingCart, Calendar } from 'lucide-react';
+import { Bell, Check, AlertTriangle, DollarSign, FileText, Calendar } from 'lucide-react';
 import { useState } from 'react';
 
 interface Notification {
   id: string;
-  type: 'invoice' | 'budget' | 'purchase_order' | 'system' | 'reminder';
+  type: 'invoice' | 'budget' | 'system' | 'reminder';
   title: string;
   message: string;
   timestamp: string;
@@ -33,15 +33,6 @@ const Notifications = () => {
       message: 'Marketing department has exceeded 90% of monthly budget',
       timestamp: '5 hours ago',
       read: false,
-      priority: 'medium'
-    },
-    {
-      id: '3',
-      type: 'purchase_order',
-      title: 'PO Approval Required',
-      message: 'Purchase Order #PO-2024-015 requires your approval',
-      timestamp: '1 day ago',
-      read: true,
       priority: 'medium'
     },
     {
@@ -81,8 +72,6 @@ const Notifications = () => {
         return <FileText className="h-5 w-5 text-blue-500" />;
       case 'budget':
         return <DollarSign className="h-5 w-5 text-amber-500" />;
-      case 'purchase_order':
-        return <ShoppingCart className="h-5 w-5 text-purple-500" />;
       case 'system':
         return <Bell className="h-5 w-5 text-gray-500" />;
       case 'reminder':
