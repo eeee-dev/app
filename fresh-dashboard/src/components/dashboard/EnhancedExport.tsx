@@ -36,6 +36,7 @@ const EnhancedExport = () => {
     { id: 'expenses', label: 'Expenses', description: 'All expense records with details', defaultFormat: 'excel' },
     { id: 'incomes', label: 'Incomes', description: 'Income transactions and sources', defaultFormat: 'excel' },
     { id: 'invoices', label: 'Invoices', description: 'Invoice tracking and status', defaultFormat: 'pdf' },
+    { id: 'purchase_orders', label: 'Purchase Orders', description: 'PO details and approvals', defaultFormat: 'excel' },
     { id: 'budgets', label: 'Budgets', description: 'Budget allocations and utilization', defaultFormat: 'excel' },
     { id: 'departments', label: 'Departments', description: 'Department performance metrics', defaultFormat: 'csv' },
     { id: 'tax_records', label: 'Tax Records', description: 'VAT and tax calculations', defaultFormat: 'pdf' },
@@ -65,7 +66,7 @@ const EnhancedExport = () => {
       id: 'audit_package',
       name: 'Audit Package',
       description: 'Complete dataset for financial audit',
-      includes: ['expenses', 'incomes', 'invoices', 'audit_trail']
+      includes: ['expenses', 'incomes', 'invoices', 'purchase_orders', 'audit_trail']
     },
     {
       id: 'department_review',
